@@ -175,3 +175,27 @@ kbd{padding:4px 7px;min-width:23px;text-align:center;background:#1a3549;color:#a
  .challenge-stats strong{font-size:23px}
  .challenge-feedback{height:12px}
 }
+
+/* Real-data UI: visible provenance is required by the DEM/imagery providers. */
+#imagery-key,.controls-panel input[type=date]{width:100%;background:#14283a;
+  border:1px solid rgba(160,217,238,.25);border-radius:4px;
+  color:#e8f6ff;padding:9px;margin-bottom:11px;font-size:12px}
+#imagery-key[hidden]{display:none}
+#apply-terrain{margin:-3px 0 12px;font-size:13px;padding:9px}
+#terrain-status{color:#96e3eb;font-size:10px;line-height:1.5;min-height:24px;
+  padding:7px 0 11px;margin-bottom:12px;border-bottom:1px solid var(--line)}
+.geo-attribution{position:fixed;z-index:9;bottom:148px;left:23px;
+  max-width:min(730px,calc(100vw - 46px));border:1px solid #ffffff28;
+  border-radius:3px;background:#061421b9;backdrop-filter:blur(8px);
+  color:#e5eaf0;font:500 10px/1.4 "DM Sans",sans-serif;
+  padding:4px 8px;pointer-events:auto;text-shadow:0 1px 2px #000}
+.geo-attribution a{color:#b5ebff}
+.geo-attribution[hidden]{display:none}
+@media(max-width:850px){.geo-attribution{bottom:101px;left:10px;max-width:calc(100vw - 20px);
+  font-size:9px}}
+@media(max-width:600px){.geo-attribution{left:7px;bottom:62px;right:7px;
+  max-width:none;font-size:8px;padding:3px 5px;
+  background:#061421df}
+  .controls-panel{max-height:calc(100dvh - 180px)}
+  body.mobile-menu-open .geo-attribution{display:none}
+}
