@@ -84,9 +84,12 @@ export function stepFlight(state, input = {}, dt = 1 / 60, terrainElevation = 0)
     state.flaps * 0.055);
   const thrust = a.thrust * state.throttle * (state.fuel > 0 ? 1 : 0);
   const braking = input.brake && state.onGround ? a.mass * 3.3 : 0;
+  // Only arcade challenge mode supplies boostAcceleration. Free flight stays unchanged.
+  const arcadeBoost = clamp(Number(input.boostAcceleration) || 0, 0, 15);
   const forwardAcceleration = (thrust - drag - braking) / a.mass -
-    9.81 * Math.sin(flightPathAngle);
-  state.speed = clamp(state.speed + forwardAcceleration * h, 0, a.maxSpeed * 1.16);
+    9.81 * Math.sin(flightPathAngle) + (state.onGround ? 0 : arcadeBoost);
+  state.speed = clamp(state.speed + forwardAcceleration * h, 0,
+    a.maxSpeed * (arcadeBoost > 0 ? 1.65 : 1.16));
   const verticalAcceleration = lift * Math.cos(state.roll) / a.mass - 9.81;
   state.gLoad = lift / (a.mass * 9.81);
   state.verticalSpeed = clamp(state.verticalSpeed +
