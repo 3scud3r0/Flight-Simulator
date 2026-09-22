@@ -120,7 +120,7 @@ export function createRealTerrain(THREE, scene, opts = {}) {
       if (row < N && col < N) {
         const a = i, b = i + 1, c = i + N + 1, d = c + 1;
         // Winding follows -Z toward geographic north.
-        indices.push(a, b, c, b, d, c);
+        indices.push(a, c, b, b, c, d);
       }
     }
     const geometry = new THREE.BufferGeometry();
