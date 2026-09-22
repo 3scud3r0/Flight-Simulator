@@ -19,6 +19,7 @@
     </a>
     <div class="top-center"><span class="live-dot"></span><span id="flight-status">PRONTO PARA VOAR</span><span class="top-divider">/</span><span id="fps">-- FPS</span></div>
     <div class="top-actions">
+      <button id="mobile-menu" class="icon-button" type="button" title="Configurações" aria-label="Abrir configurações" aria-expanded="false" aria-controls="control-panel">☰</button>
       <button id="help" class="icon-button" type="button" title="Controles (H)" aria-label="Abrir ajuda">?</button>
       <button id="sound" class="icon-button" type="button" title="Ativar som" aria-label="Ativar som">♪</button>
       <button id="fullscreen" class="icon-button" type="button" title="Tela cheia" aria-label="Tela cheia">⛶</button>
@@ -27,6 +28,11 @@
 
   <aside id="control-panel" class="panel controls-panel" aria-label="Configuração do voo">
     <div class="panel-heading"><span>PAINEL DE VOO</span><span class="subtle">01 / SIMULAÇÃO</span></div>
+    <label for="game-mode">MODO DE JOGO</label>
+    <select id="game-mode">
+      <option value="free">Voo Livre · sem pontuação</option>
+      <option value="challenge">Desafio Aéreo · túnel de argolas</option>
+    </select>
     <label for="aircraft">AERONAVE</label>
     <select id="aircraft">
       <option value="cessna">Cessna 172 · aviação geral</option>
@@ -69,8 +75,10 @@
       <option value="4">Praia de Copacabana</option>
     </select>
     <div class="destination"><div><span class="subtle">DISTÂNCIA</span><strong id="distance">-- NM</strong></div><div><span class="subtle">RUMO AO DESTINO</span><strong id="bearing">---°</strong></div></div>
+    <button id="start-challenge" class="button-primary" type="button">◎ &nbsp; INICIAR DESAFIO AÉREO</button>
     <button id="takeoff" class="button-primary" type="button">⤴ &nbsp; DECOLAR DA PISTA</button>
     <button id="reset" class="button-secondary" type="button">↺ &nbsp; REINICIAR VOO</button>
+    <div class="controller-box"><div class="controller-title">CONTROLE USB / BLUETOOTH</div><div id="gamepad-status" role="status" aria-live="polite">Nenhum controle detectado</div><label class="controller-option"><input id="gamepad-enabled" type="checkbox" checked> Habilitar controle</label><label class="controller-option"><input id="invert-gamepad" type="checkbox"> Inverter arfagem do manche</label><p>Conecte ao computador ou celular e aperte um botão do controle. O navegador precisa reconhecer o dispositivo.</p></div>
     <p class="disclaimer">Cenário artístico aproximado e dinâmica educativa. Não utilizar para navegação real.</p>
   </aside>
 
@@ -80,6 +88,7 @@
     <div class="map-legend"><span><i class="legend-plane"></i> SUA POSIÇÃO</span><span><i class="legend-airport"></i> AEROPORTO</span></div>
   </aside>
 
+  <section id="challenge-hud" class="challenge-hud hidden" aria-label="Placar do desafio" aria-live="polite"><div class="challenge-kicker">◎ DESAFIO AÉREO · TÚNEL DO RIO</div><div class="challenge-stats"><div><small>PONTUAÇÃO</small><strong id="score">0</strong></div><div><small>ARGOLAS</small><strong id="rings-count">0 / 14</strong></div><div><small>TEMPO</small><strong id="timer">03:00</strong></div></div><div class="challenge-bottom"><span id="combo">COMBO ×1</span><span id="boost">IMPULSO INATIVO</span></div><div class="progress course-progress"><div id="course-progress"></div></div><div class="challenge-feedback" id="challenge-feedback" aria-live="polite"></div></section>
   <div class="crosshair" aria-hidden="true"><span></span><span></span><i></i></div>
   <div id="warning" class="warning" role="status" aria-live="polite"></div>
 
@@ -99,7 +108,7 @@
   <div id="mobile" class="mobile-controls" aria-label="Controles de toque">
     <div><span>POTÊNCIA</span><input id="touch-throttle" type="range" min="0" max="100" value="76"></div>
     <div id="stick" class="stick" role="group" aria-label="Controle de arfagem e rolagem"><div id="stick-knob"></div></div>
-    <div class="mobile-buttons"><button id="rudder-left" type="button">◀ LEME</button><button id="rudder-right" type="button">LEME ▶</button><button id="touch-flaps" type="button">FLAPS</button><button id="touch-gear" type="button">TREM</button></div>
+    <div class="mobile-buttons"><button id="mobile-camera" type="button">CÂMERA</button><button id="mobile-pause" type="button">PAUSA</button><button id="rudder-left" type="button">◀ LEME</button><button id="rudder-right" type="button">LEME ▶</button><button id="touch-flaps" type="button">FLAPS</button><button id="touch-gear" type="button">TREM</button></div>
   </div>
 
   <div id="welcome" class="overlay" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
@@ -108,10 +117,11 @@
       <div class="hero-emblem">✦</div>
       <h1 id="welcome-title">O RIO É<br><em>SEU CÉU.</em></h1>
       <p>Decole sobre a Baía de Guanabara, contorne o Pão de Açúcar e descubra o Rio de Janeiro em um simulador 3D feito para o navegador.</p>
-      <div class="welcome-features"><span>◈ 3 AERONAVES</span><span>◈ 3 AEROPORTOS</span><span>◈ VOO LIVRE</span></div>
-      <button id="start" class="button-primary hero-button" type="button">INICIAR VOO PANORÂMICO &nbsp; ↗</button>
+      <div class="welcome-features"><span>◈ 3 AERONAVES</span><span>◈ 3 AEROPORTOS</span><span>◈ VOO LIVRE + DESAFIO</span></div>
+      <button id="start" class="button-primary hero-button" type="button">INICIAR VOO LIVRE &nbsp; ↗</button>
+      <button id="welcome-challenge" class="button-primary hero-button challenge-start" type="button">◎ INICIAR DESAFIO DE ARGOLAS &nbsp; ↗</button>
       <button id="start-runway" class="link-button" type="button">OU COMEÇAR NA PISTA DE DECOLAGEM →</button>
-      <small>WebGL 2 recomendado · Teclado, mouse e controles de toque · Gratuito</small>
+      <small>WebGL recomendado · Teclado, controle USB/Bluetooth e celular · Gratuito</small>
     </div>
   </div>
 
@@ -129,11 +139,14 @@
         <div><kbd>B</kbd><span>Freios (segurar)</span></div>
         <div><kbd>V</kbd> / <kbd>P</kbd><span>Câmera / pausar</span></div>
         <div><kbd>R</kbd> / <kbd>H</kbd><span>Reiniciar / ajuda</span></div>
+        <div><kbd>C</kbd><span>Alternar Voo Livre / Desafio</span></div>
+        <div><kbd>Gamepad</kbd><span>Manche esquerdo / gatilhos / botões</span></div>
       </div>
-      <p>Na pista: aumente a potência e puxe o manche ao atingir a velocidade de rotação. Em voo: inclinação e velocidade influenciam sustentação, arrasto e curva. Acima do ângulo de ataque crítico, a asa perde sustentação.</p>
+      <p>Na pista: aumente a potência e puxe o manche ao atingir a velocidade de rotação. No Desafio, atravesse as argolas no sentido correto e ganhe pontos, combos e impulso automático por 3,5 s. Argolas perdidas zeram o combo. O gamepad usa manche esquerdo para rolagem e arfagem, manche direito horizontal para leme, RT/LT para potência, A para iniciar, B para trem, X para flaps, Y para câmera e Start para pausa.</p>
       <button id="resume-help" class="button-primary" type="button">VOLTAR AO VOO</button>
     </div>
   </div>
+  <div id="result-overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="result-title"><div class="help-card result-card"><div class="eyebrow">◎ DESAFIO AÉREO</div><h2 id="result-title">PERCURSO CONCLUÍDO</h2><p id="result-detail"></p><div class="result-score" id="result-score">0</div><p id="record-label"></p><button id="retry-challenge" class="button-primary" type="button">TENTAR NOVAMENTE</button><button id="result-free" class="button-secondary" type="button">CONTINUAR NO VOO LIVRE</button></div></div>
   <div id="loading" aria-live="polite">CARREGANDO CENÁRIO DO RIO...</div>
   <script type="module" src="./src/main.js"></script>
 </body>
