@@ -197,5 +197,4 @@ kbd{padding:4px 7px;min-width:23px;text-align:center;background:#1a3549;color:#a
   max-width:none;font-size:8px;padding:3px 5px;
   background:#061421df}
   .controls-panel{max-height:calc(100dvh - 180px)}
-  body.mobile-menu-open .geo-attribution{display:none}
 }
