@@ -61,7 +61,7 @@ async function choose(page,value){
 async function fly(page,file){
  if(await page.locator("#welcome").isVisible())
   await page.locator("#start").click();
- else await page.locator("#reset").click();
+ else await page.keyboard.press("r");
  await page.waitForFunction(()=>document.querySelector("#welcome")
   ?.classList.contains("hidden"),{timeout:20000});
  await page.waitForTimeout(1200);
