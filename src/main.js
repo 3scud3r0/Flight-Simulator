@@ -15,6 +15,8 @@ import { createOcean } from "./ocean.js";
 
 const $ = id => document.getElementById(id);
 const SAFE_MODE = new URLSearchParams(location.search).has("safe");
+const MOBILE_DEVICE = typeof matchMedia === "function" &&
+  matchMedia("(pointer: coarse)").matches;
 if (SAFE_MODE) {
   $("terrain-mode").value = "art";
   $("flight-model").value = "classic";
@@ -56,8 +58,10 @@ const world = createWorld(THREE, scene, renderer, SAFE_MODE);
 let sky = null, ocean = null;
 if (!SAFE_MODE) {
   sky = createSky(THREE, scene, world, renderer);
-  ocean = createOcean(THREE, scene, renderer);
-  world.sea.visible = false;
+  if (!MOBILE_DEVICE) {
+    ocean = createOcean(THREE, scene, renderer);
+    world.sea.visible = false;
+  }
 }
 const nowBrazil = new Intl.DateTimeFormat("en-CA", {
   timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit"
@@ -88,7 +92,7 @@ function rebuildTerrain() {
   }
   let loadSuccess = false;
   terrainEngine = createRealTerrain(THREE, scene, {
-    renderer, mobile: matchMedia("(pointer: coarse)").matches,
+    renderer, mobile: MOBILE_DEVICE,
     imagery: provider !== "none" && !(provider === "maptiler" && !apiKey),
     provider, apiKey,
     onStatus(message) { $("terrain-status").textContent = message; },
