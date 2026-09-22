@@ -381,7 +381,7 @@ export function createWorld(THREE, scene, renderer) {
   sun.shadow.camera.left = sun.shadow.camera.bottom = -3000;
   sun.shadow.camera.right = sun.shadow.camera.top = 3000;
   sun.shadow.camera.far = 30000;
-  scene.add(sun);
+  scene.add(sun); scene.add(sun.target);
   const hemi = new THREE.HemisphereLight(0xb5dcff, 0x46634d, 1.1);
   scene.add(hemi);
   scene.fog = new THREE.FogExp2(0xb2dbf0, .000021);
