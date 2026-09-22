@@ -35,12 +35,15 @@ export function noise3(x,y,z,seed=1){
  return lerp(plane(0),plane(1),w)*2-1;
 }
 export function grid(width,height,fn){
- if(width<1||height<1||width*height>2e7)throw RangeError("Invalid grid budget");
+ if(!Number.isInteger(width)||!Number.isInteger(height)||width<1||height<1||
+ width*height>2e7)throw RangeError("Invalid grid budget");
  const out=new Float32Array(width*height);
  for(let y=0;y<height;y++)for(let x=0;x<width;x++)out[y*width+x]=fn(x,y);
  return out;
 }
 export function sampleGrid(data,w,h,x,y){
+ if(!Number.isInteger(w)||!Number.isInteger(h)||w<1||h<1||
+ data.length!==w*h)throw RangeError("Invalid sample grid dimensions");
  x=clamp(x,0,w-1);y=clamp(y,0,h-1);
  const i=Math.floor(x),j=Math.floor(y),k=Math.min(w-1,i+1),l=Math.min(h-1,j+1);
  return lerp(lerp(data[j*w+i],data[j*w+k],x-i),lerp(data[l*w+i],data[l*w+k],x-i),y-j);
@@ -48,4 +51,8 @@ export function sampleGrid(data,w,h,x,y){
 export const finite=(n,fallback=0)=>Number.isFinite(n)?n:fallback;
 export const distance2=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 export const saturate=(x)=>clamp(x);
-export function assertGrid(data,w,h){if(!(data instanceof Float32Array)||data.length!==w*h)throw TypeError("Expected Float32Array of width*height");}
+export function assertGrid(data,w,h){
+ if(!Number.isInteger(w)||!Number.isInteger(h)||w<1||h<1||
+ !(data instanceof Float32Array)||data.length!==w*h)
+ throw TypeError("Expected Float32Array of integer width*height");
+}
