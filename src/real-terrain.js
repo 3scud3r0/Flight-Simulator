@@ -9,7 +9,7 @@ import { geo, toGeo, sampleHeight as legacyHeight } from "./world.js";
 export const DEM_SOURCE = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium";
 export const IMAGERY_SOURCE =
   "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2024_3857/default/GoogleMapsCompatible";
-export const DEM_ZOOM = 12;
+export const DEM_ZOOM = 13;
 export const MERCATOR_MAX = 85.05112878;
 
 export function lonToTile(lon, zoom) {
@@ -66,8 +66,8 @@ function loadImage(url) {
 
 export function createRealTerrain(THREE, scene, opts = {}) {
   const mobile = opts.mobile ?? matchMedia("(pointer: coarse)").matches;
-  const zoom = opts.zoom ?? DEM_ZOOM;
-  const radius = opts.radius ?? (mobile ? 1 : 2);
+  const zoom = opts.zoom ?? (mobile ? 12 : DEM_ZOOM);
+  const radius = opts.radius ?? (mobile ? 1 : 3);
   const limit = opts.limit ?? (mobile ? 2 : 4);
   const maxTiles = (2 * radius + 1) ** 2 + 6;
   const provider = opts.provider ?? "eox";
