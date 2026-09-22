@@ -64,11 +64,9 @@ const world = createWorld(THREE, scene, renderer, SAFE_MODE);
 let sky = null, ocean = null;
 if (!SAFE_MODE) {
   sky = createSky(THREE, scene, world, renderer);
-  if (!MOBILE_DEVICE) {
-    ocean = createOcean(THREE, scene, renderer);
-    world.sea.visible = false;
-  }
 }
+// Start with the inexpensive water material; high graphics opts into GPU waves.
+world.sea.visible = true;
 const nowBrazil = new Intl.DateTimeFormat("en-CA", {
   timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit"
 });
@@ -528,13 +526,17 @@ function updateHud() {
 function resize() {
   const w = innerWidth, h = innerHeight;
   const quality = $("quality").value;
-  const ratio = quality === "eco" ? 1 :
-    quality === "high" ? Math.min(devicePixelRatio || 1, 2) :
-      Math.min(devicePixelRatio || 1, w < 650 ? 1.1 : 1.55);
+  const ratio = quality === "eco" ? Math.min(devicePixelRatio || 1, .9) :
+    quality === "high" ? Math.min(devicePixelRatio || 1, 1.75) :
+      Math.min(devicePixelRatio || 1, w < 650 ? 1 : 1.15);
   renderer.setPixelRatio(ratio); renderer.setSize(w, h, false);
   camera.aspect = w / h; camera.updateProjectionMatrix();
   renderer.shadowMap.enabled = quality === "high";
   world.sun.castShadow = quality === "high";
+  const useOcean = !SAFE_MODE && !MOBILE_DEVICE && quality === "high";
+  if (useOcean && !ocean) ocean = createOcean(THREE, scene, renderer);
+  if (ocean) ocean.surface.visible = useOcean;
+  world.sea.visible = !useOcean;
 }
 function setupAudio() {
   if (!audio) {
