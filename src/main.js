@@ -2,8 +2,14 @@ import {
   AIRCRAFT, createFlight, stepFlight, clamp, rad, deg
 } from "./physics.js";
 import {
-  AIRPORTS, LANDMARKS, geo, toGeo, sampleHeight, isLand, createWorld
+  AIRPORTS as RIO_AIRPORTS, LANDMARKS as RIO_LANDMARKS,
+  geo as rioGeo, toGeo as rioToGeo,
+  sampleHeight as rioSampleHeight, createWorld
 } from "./world.js";
+import {
+  AETHERIA_AIRPORTS,AETHERIA_LANDMARKS,AETHERIA_REGIONS,
+  AETHERIA_SIZE,aetheriaRegionAt
+} from "./aetheria-data.js";
 import { createCourse, createChallenge, stepChallenge, RING_COUNT } from "./challenge.js";
 import { createCourseVisual } from "./course-renderer.js";
 import { readGamepad, chooseGamepad } from "./gamepad.js";
@@ -61,7 +67,16 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(64, 1, .6, 92000);
 const clock = new THREE.Clock();
-const world = createWorld(THREE, scene, renderer, SAFE_MODE);
+const rioWorld = createWorld(THREE, scene, renderer, SAFE_MODE);
+const rioObjects = scene.children.slice();
+let world = rioWorld;
+let activeWorld = "rio", aetheriaModule = null, aetheriaWorld = null;
+let AIRPORTS = RIO_AIRPORTS, LANDMARKS = RIO_LANDMARKS;
+const geo = (lat,lon) => activeWorld === "aetheria" ?
+  {x:lon,z:lat} : rioGeo(lat,lon);
+const toGeo = (x,z) => activeWorld === "aetheria" ?
+  {lat:z,lon:x} : rioToGeo(x,z);
+let worldChangeToken = 0;
 let sky = null, ocean = null;
 if (!SAFE_MODE) {
   sky = createSky(THREE, scene, world, renderer);
@@ -79,6 +94,11 @@ $("flight-date").value = brazilParts.year + "-" +
 let terrainEngine = null, terrainRequested = true, environmentWind = {x:0,y:0,z:0};
 let secondsInFlight = 0, lastEnvironment = 0;
 function rebuildTerrain() {
+  if(activeWorld!=="rio"){
+    $("terrain-status").textContent =
+      "Aetheria: geração original offline, sem DEM nem satélite.";
+    return;
+  }
   terrainEngine?.dispose();
   terrainEngine = null;
   world.setRealTerrainEnabled(false);
@@ -118,8 +138,9 @@ function rebuildTerrain() {
   if (flight) terrainEngine.update(flight.x, flight.z);
 }
 function terrainHeight(x,z) {
+  if(activeWorld==="aetheria")return world.sampleHeight(x,z);
   const actual = terrainRequested ? terrainEngine?.getHeight(x,z) : null;
-  return actual ?? sampleHeight(x,z);
+  return actual ?? rioSampleHeight(x,z);
 }
 loading.classList.add("hidden");
 
@@ -143,7 +164,7 @@ const mapCtx = $("map").getContext("2d");
 const mapImage = document.createElement("canvas");
 mapImage.width = mapImage.height = 320;
 const mapBackground = mapImage.getContext("2d");
-const MAP_SIZE = 62000;
+let MAP_SIZE = 62000, MAP_Z_SIZE = 62000;
 
 function mesh(group, geometry, material, x = 0, y = 0, z = 0) {
   const item = new THREE.Mesh(geometry, material);
@@ -248,7 +269,8 @@ function spawn(runway = false) {
     const panoramic = geo(-22.979, -43.227);
     options = { ...panoramic, y: 780, heading: rad(65) };
   } else {
-    options = { x: p.x - 1900, z: p.z + 2200, y: 850, heading: rad(airport.heading) };
+    options = { x: p.x - 1900, z: p.z + 2200,
+      y: Math.max(850,airport.elevation+650), heading: rad(airport.heading) };
   }
   flight = createFlight(activeAircraft, options);
   if (runway) {
@@ -354,7 +376,7 @@ function finishChallenge(reason) {
   $("result-detail").textContent = challenge.passed + " argolas corretas · " +
     challenge.missed + " perdidas · " + Math.ceil(challenge.timeLeft) + " s restantes";
   $("result-score").textContent = challenge.score.toLocaleString("pt-BR");
-  const key = "rio-flight-best-v1:" + activeAircraft;
+  const key = "rio-flight-best-v1:" + activeWorld + ":" + activeAircraft;
   let record = challenge.score;
   try {
     record = Math.max(Number(localStorage.getItem(key)) || 0, challenge.score);
@@ -472,7 +494,7 @@ function buildMap() {
 }
 function mapXY(p) {
   return { x: (p.x / MAP_SIZE + .5) * 320,
-    y: (p.z / MAP_SIZE + .5) * 320 };
+    y: (p.z / MAP_Z_SIZE + .5) * 320 };
 }
 function drawMap() {
   mapCtx.clearRect(0, 0, 320, 320);
@@ -504,7 +526,9 @@ function updateHud() {
   $("gear").textContent = flight.gear ? "GEAR ▾" : "GEAR ▴";
   $("gear").style.color = flight.gear ? "#78e9b9" : "#fbd38d";
   $("flaps").textContent = "FLAPS " + (flight.flaps * 100) + "%";
-  $("coords").textContent = Math.abs(gps.lat).toFixed(2) + "°S · " +
+  $("coords").textContent = activeWorld==="aetheria" ?
+    "X "+(flight.x/1000).toFixed(0)+" KM · Z "+(flight.z/1000).toFixed(0)+" KM" :
+    Math.abs(gps.lat).toFixed(2) + "°S · " +
     Math.abs(gps.lon).toFixed(2) + "°W";
   const target = LANDMARKS[Number($("route").value)];
   const p = geo(target.lat, target.lon);
