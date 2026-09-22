@@ -1,20 +1,23 @@
 /** Algorithms 021–040: bounded streaming, LOD, visibility and GPU lifetime. */
 import {clamp,vec,length,sub,add,mul} from "./math.js";
 export function quadtree(bounds,depth,estimate,threshold=1,maxNodes=16384){
- let nodes=0;
- const visit=(box,d)=>{nodes++;const node={bounds:box,children:null,error:estimate(box)};
- if(d<=0||node.error<=threshold||nodes+4>maxNodes)return node;
+ let nodes=0;maxNodes=Math.max(1,Math.min(16384,maxNodes|0));
+ const visit=(box,d)=>{if(nodes>=maxNodes)return null;nodes++;
+ const node={bounds:box,children:null,error:estimate(box)};
+ if(d<=0||node.error<=threshold||nodes>=maxNodes)return node;
  const {x,y,size}=box,h=size/2;
  node.children=[[x,y],[x+h,y],[x,y+h],[x+h,y+h]]
- .map(([a,b])=>visit({x:a,y:b,size:h},d-1));return node;};
+ .map(([a,b])=>visit({x:a,y:b,size:h},d-1)).filter(Boolean);return node;};
  return visit(bounds,Math.min(depth,15));
 }
 export function octree(bounds,depth,occupied,maxNodes=16384){
- let nodes=0;
- const visit=(b,d)=>{nodes++;const count=occupied(b),n={bounds:b,count,children:null};
- if(d<=0||!count||nodes+8>maxNodes)return n;const h=b.size/2;
+ let nodes=0;maxNodes=Math.max(1,Math.min(16384,maxNodes|0));
+ const visit=(b,d)=>{if(nodes>=maxNodes)return null;nodes++;
+ const count=occupied(b),n={bounds:b,count,children:null};
+ if(d<=0||!count||nodes>=maxNodes)return n;const h=b.size/2;
  n.children=[];for(let z=0;z<2;z++)for(let y=0;y<2;y++)for(let x=0;x<2;x++)
- n.children.push(visit({x:b.x+x*h,y:b.y+y*h,z:b.z+z*h,size:h},d-1));
+ {const child=visit({x:b.x+x*h,y:b.y+y*h,z:b.z+z*h,size:h},d-1);
+ if(child)n.children.push(child);}
  return n;};return visit(bounds,Math.min(10,depth));
 }
 export function geometryClipmap(center,levels=5,base=32){
