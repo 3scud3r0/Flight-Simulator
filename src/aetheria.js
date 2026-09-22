@@ -154,16 +154,17 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
    const n=Math.sin(col*91.77+row*37.63)*
     Math.cos(col*14.17-row*42.11);
    const v=Math.round(225+n*19);
-   texturePixels.data[i]=v;
-   texturePixels.data[i+1]=v;
-   texturePixels.data[i+2]=v;
+   // A subdued grass/soil albedo, not a dark gravel texture.
+   texturePixels.data[i]=Math.round(v*.71);
+   texturePixels.data[i+1]=Math.round(v*.92);
+   texturePixels.data[i+2]=Math.round(v*.68);
    texturePixels.data[i+3]=255;
   }
  textureContext.putImageData(texturePixels,0,0);
  const soilTexture=new THREE.CanvasTexture(textureCanvas);
  soilTexture.colorSpace=THREE.SRGBColorSpace;
  soilTexture.wrapS=soilTexture.wrapT=THREE.RepeatWrapping;
- soilTexture.repeat.set(10,10);
+ soilTexture.repeat.set(22,22);
  soilTexture.anisotropy=Math.min(4,
   renderer.capabilities.getMaxAnisotropy?.()||2);
  const material=new THREE.MeshStandardMaterial({
@@ -285,8 +286,7 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
    // Albedo PBR already contains dark detail; avoid multiplying it by
    // a second dark biome tint (which made the entire city look black).
    // Keep earthy greens; PBR gravel albedo made the coast look black.
-   if(!["megacity","jungle"].includes(b.primary.biome))
-    color.lerp(new THREE.Color(0xffffff),.38);
+   color.lerp(new THREE.Color(0xffffff),.70);
    color.multiplyScalar(.96+slope*.07);
    verts.push(col/N*CELL,y,row/N*CELL);
    colors.push(color.r,color.g,color.b);
