@@ -28,8 +28,18 @@ full Aetheria renderer.
   where Canvas 2D is available, locally generated window/albedo textures.
   Each tile uses a few bounded GPU batches rather than one draw call per
   building or tree; its instance buffers are released on eviction.
-- **Time of day:** building windows receive a bounded emissive contribution
-  at night through the same daylight parameter used by the world.
+- **Airport signature pass:** region-specific, procedural concourses, glass
+  terminal frontage, roof articulation, passenger bridges and control towers
+  are authored in runway-local coordinates at each of four airfields, and
+  explicitly released on airport switching. These are geometric art-direction
+  proxies, NOT photogrammetric terminals or operational jetways.
+- **Cloud silhouette:** the existing single stretched cloud ellipsoids are
+  replaced with groups of 2–5 overlapping puffs in a single instanced draw
+  batch, with device-dependent geometry budgets. These are NOT volumetric
+  clouds or physically based precipitation.
+- **Time of day:** building windows and terminal glass receive a bounded
+  emissive contribution at night through the same daylight parameter used
+  by the world.
 - **Isolation:** no new requests to third-party map servers and no changes to
   the Rio DEM/imagery paths or the independent offline Aetheria Lite renderer.
 
@@ -37,13 +47,14 @@ full Aetheria renderer.
 
 `src/scenery-plan.js` is dependency-free with respect to Three.js and accepts
 an injected elevation sampler. `src/scenery-renderer.js` owns only Three.js
-objects. `src/terrain-detail.js` is a pure LOD policy. The adapter in
+objects. `src/terrain-detail.js` is a pure LOD policy. `src/airport-signature.js`
+provides runway-local authored airport proxies. The adapter in
 `src/aetheria.js` connects all three to the existing update and disposal
 lifecycle.
 
 **Not yet delivered:** photoreal scanned/handcrafted urban assets, organic
 road-network topology and traffic, cascade shadows, volumetric clouds, sophisticated reflections,
-photogrammetry, real traffic, airport-grade authored scenery, or certified
+photogrammetry, real traffic, airport-grade detailed assets, or certified
 aerodynamics. Procedural box buildings and low-poly canopy geometry are an
 intermediate representation. Further artistic asset and measured GPU work
 are necessary before describing the rendered result as AAA.
