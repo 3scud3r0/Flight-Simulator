@@ -273,7 +273,10 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
     clamp((y-2600)/1700)*.8);
    const slope=Generation.fractalBrownianMotion(
     x*.00041,z*.00041,{seed:COUNTRY_SEED,octaves:2});
-   color.multiplyScalar(.86+slope*.12);
+   // Albedo PBR already contains dark detail; avoid multiplying it by
+   // a second dark biome tint (which made the entire city look black).
+   color.lerp(new THREE.Color(0xffffff),.65);
+   color.multiplyScalar(.96+slope*.07);
    verts.push(col/N*CELL,y,row/N*CELL);
    colors.push(color.r,color.g,color.b);
    uv.push(col/N,row/N);
