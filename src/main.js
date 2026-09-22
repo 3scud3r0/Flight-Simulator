@@ -78,7 +78,10 @@ const clock = new THREE.Clock();
 const rioWorld = createWorld(THREE, scene, renderer, SAFE_MODE);
 const rioObjects = scene.children.slice();
 let world = rioWorld;
-let activeWorld = "rio", selectedWorld = "rio", aetheriaModule = null,
+// No world is considered selected until the initial scene has actually been
+// constructed. The HTML defaults to Aurora, so treating Rio as already
+// selected here used to make startup skip the first real world transition.
+let activeWorld = "rio", selectedWorld = null, aetheriaModule = null,
   aetheriaWorld = null, auroraWorld = null;
 let AIRPORTS = RIO_AIRPORTS, LANDMARKS = RIO_LANDMARKS;
 const geo = (lat,lon) => activeWorld !== "rio" ?
@@ -1124,18 +1127,18 @@ function animate(now) {
 }
 requestAnimationFrame(animate);
 const requestedWorld=new URLSearchParams(location.search).get("world");
-if(["aurora","aetheria","aetheria-lite"].includes(requestedWorld)||!requestedWorld){
-  setTimeout(()=>changeWorld(
-    SAFE_MODE&&requestedWorld==="aetheria"?"aetheria-lite":requestedWorld||"aurora"),200);
-}else if(requestedWorld==="rio"){
-  $("world-select").value=$("welcome-world").value="rio";
-  syncWorldChoices("rio");
-  $("world-info").textContent="Rio de Janeiro · 3 aeroportos · relevo real opcional";
-  if(!SAFE_MODE && $("terrain-mode").value==="real")
+const initialWorld=["aurora","rio","aetheria","aetheria-lite"].includes(requestedWorld)?
+  SAFE_MODE&&requestedWorld==="aetheria"?"aetheria-lite":requestedWorld:"aurora";
+// Build the selected world before allowing either start button to launch a
+// flight. This removes the old 200 ms race where the menu and initial Rio
+// scene could disagree about which world was active.
+$("world-select").disabled=true;
+$("welcome-world").disabled=true;
+$("start").disabled=true;
+$("welcome-challenge").disabled=true;
+$("start-runway").disabled=true;
+for(const card of document.querySelectorAll(".world-choice"))card.disabled=true;
+void changeWorld(initialWorld).then(()=>{
+  if(initialWorld==="rio"&&!SAFE_MODE&&$("terrain-mode").value==="real")
     setTimeout(()=>{if(activeWorld==="rio")rebuildTerrain()},1200);
-}else if(!SAFE_MODE && $("terrain-mode").value==="real"){
-  // Rio keeps the old DEM optional and starts after the first render.
-  setTimeout(()=>{if(activeWorld==="rio")rebuildTerrain()},1200);
-}else{
-  $("terrain-status").textContent="Modo leve ativo · cenário disponível.";
-}
+}).catch(error=>console.error("[Flight Simulator] Initial world failed",error));
