@@ -7,6 +7,10 @@ import {
 import { createCourse, createChallenge, stepChallenge, RING_COUNT } from "./challenge.js";
 import { createCourseVisual } from "./course-renderer.js";
 import { readGamepad, chooseGamepad } from "./gamepad.js";
+import { createRealTerrain } from "./real-terrain.js";
+import { createSky } from "./sky.js";
+import { createRigidFlight, stepRigidFlight } from "./six-dof.js";
+import { makeDetailedAircraft } from "./aircraft-model.js";
 
 const $ = id => document.getElementById(id);
 const loading = $("loading");
@@ -39,6 +43,46 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(64, 1, .6, 92000);
 const clock = new THREE.Clock();
 const world = createWorld(THREE, scene, renderer);
+const sky = createSky(THREE, scene, world, renderer);
+const nowBrazil = new Intl.DateTimeFormat("en-CA", {
+  timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit"
+});
+$("flight-date").value = nowBrazil.format(new Date());
+let terrainEngine = null, terrainRequested = true, environmentWind = {x:0,y:0,z:0};
+let secondsInFlight = 0, lastEnvironment = 0;
+function rebuildTerrain() {
+  terrainEngine?.dispose();
+  terrainEngine = null;
+  world.setRealTerrainEnabled(false);
+  terrainRequested = $("terrain-mode").value === "real";
+  $("geo-attribution").hidden = !terrainRequested;
+  if (!terrainRequested) {
+    $("terrain-status").textContent = "Cenário artístico: nenhum dado real carregado.";
+    return;
+  }
+  const provider = $("imagery").value;
+  const apiKey = $("imagery-key").value.trim();
+  if (provider === "maptiler" && !apiKey) {
+    $("terrain-status").textContent = "Informe uma chave MapTiler autorizada para imagens; usando relevo sem fotografias.";
+  }
+  let loadSuccess = false;
+  terrainEngine = createRealTerrain(THREE, scene, {
+    renderer, mobile: matchMedia("(pointer: coarse)").matches,
+    imagery: provider !== "none" && !(provider === "maptiler" && !apiKey),
+    provider, apiKey,
+    onStatus(message) { $("terrain-status").textContent = message; },
+    onFirstTile() {
+      loadSuccess = true;
+      world.setRealTerrainEnabled(true);
+      $("terrain-status").textContent = "Elevação real ativa; carregando imagem orbital…";
+    }
+  });
+  if (flight) terrainEngine.update(flight.x, flight.z);
+}
+function terrainHeight(x,z) {
+  const actual = terrainRequested ? terrainEngine?.getHeight(x,z) : null;
+  return actual ?? sampleHeight(x,z);
+}
 loading.classList.add("hidden");
 
 let flight, aircraft, activeAircraft = $("aircraft").value;
@@ -145,11 +189,7 @@ function makeAirplane(id) {
 }
 function disposeAirplane(model) {
   if (!model) return;
-  scene.remove(model.group);
-  model.group.traverse(object => {
-    if (object.isMesh) object.geometry.dispose();
-  });
-  model.materials.forEach(m => m.dispose());
+  model.dispose();
 }
 function spawn(runway = false) {
   clearChallenge();
@@ -176,8 +216,10 @@ function spawn(runway = false) {
   if (runway) {
     flight.throttle = .13; flight.pitch = 0; flight.onGround = true;
   }
+  if ($("flight-model").value === "rigid") flight = createRigidFlight(flight);
   disposeAirplane(aircraft);
-  aircraft = makeAirplane(activeAircraft);
+  aircraft = makeDetailedAircraft(THREE, scene, activeAircraft);
+  secondsInFlight = 0;
   updateAirplane();
   cameraMode = 0; updateCameraLabel();
   camera.position.copy(planePosition).add(new THREE.Vector3(0, 60, 130));
@@ -187,11 +229,13 @@ function spawn(runway = false) {
 }
 function updateAirplane() {
   aircraft.group.position.set(flight.x, flight.y, flight.z);
-  aircraft.group.rotation.order = "YXZ";
-  aircraft.group.rotation.set(flight.pitch, -flight.heading, -flight.roll);
-  aircraft.gear.visible = flight.gear;
-  for (const prop of aircraft.propellers) prop.rotation.z +=
-    (11 + flight.throttle * 53) * FIXED_STEP;
+  if (flight.q) {
+    aircraft.group.quaternion.set(flight.q.x,flight.q.y,flight.q.z,flight.q.w);
+  } else {
+    aircraft.group.rotation.order = "YXZ";
+    aircraft.group.rotation.set(flight.pitch,-flight.heading,-flight.roll);
+  }
+  aircraft.animate(FIXED_STEP,flight);
   planePosition.copy(aircraft.group.position);
 }
 function updateCamera(dt) {
@@ -291,7 +335,7 @@ function begin(runway = false, requestedMode = $("game-mode").value) {
   $("result-overlay").classList.add("hidden");
   spawn(runway);
   if (mode === "challenge") {
-    const rings = createCourse(flight, sampleHeight);
+    const rings = createCourse(flight, terrainHeight);
     challenge = createChallenge(rings);
     courseVisual = createCourseVisual(THREE, scene, rings);
     ringResults = [];
@@ -362,8 +406,9 @@ function pilotInput() {
       (press("Minus", "NumpadSubtract") ? .37 : 0) + gamepadState.throttleDelta,
     brake: press("KeyB", "Space") || gamepadState.brake,
     boostAcceleration: challenge?.status === "running" && challenge.boostLeft > 0 ? 12 : 0,
-    windX: $("weather").value === "vento" ? 5.5 : 0,
-    windZ: $("weather").value === "vento" ? -3.8 : 0
+    windX: environmentWind.x,
+    windY: environmentWind.y,
+    windZ: environmentWind.z
   };
 }
 function buildMap() {
@@ -411,7 +456,7 @@ function drawMap() {
 }
 function updateHud() {
   const gps = toGeo(flight.x, flight.z);
-  $("speed").textContent = String(Math.round(flight.speed * 1.943844)).padStart(3, "0");
+  $("speed").textContent = String(Math.round((flight.ias ?? flight.speed) * 1.943844)).padStart(3, "0");
   $("altitude").textContent = String(Math.max(0, Math.round(flight.y * 3.28084))).padStart(4, "0");
   $("heading").textContent = String(Math.round(deg(flight.heading)) % 360).padStart(3, "0");
   $("throttle").textContent = Math.round(flight.throttle * 100);
@@ -530,6 +575,14 @@ $("time").addEventListener("input", event => {
   hour = Number(event.target.value); setClockText();
 });
 $("quality").addEventListener("change", resize);
+$("apply-terrain").addEventListener("click", rebuildTerrain);
+$("terrain-mode").addEventListener("change", rebuildTerrain);
+$("flight-model").addEventListener("change", () => {
+  if (flight) spawn(false);
+});
+$("imagery").addEventListener("change", () => {
+  $("imagery-key").hidden = $("imagery").value !== "maptiler";
+});
 $("touch-throttle").addEventListener("input", event => {
   flight.throttle = Number(event.target.value) / 100;
 });
@@ -609,6 +662,7 @@ setClockText();
 buildMap();
 spawn(false);
 resize();
+rebuildTerrain();
 world.updateEnvironment(hour, $("weather").value, 0);
 updateHud();
 let last = performance.now();
@@ -627,8 +681,10 @@ function animate(now) {
     const input = pilotInput();
     while (accumulator >= FIXED_STEP) {
       const previous = { x: flight.x, y: flight.y, z: flight.z };
-      stepFlight(flight, input, FIXED_STEP,
-        Math.max(0, sampleHeight(flight.x, flight.z)));
+      const height = Math.max(0, terrainHeight(flight.x, flight.z));
+      if (flight.q) stepRigidFlight(flight,input,FIXED_STEP,height);
+      else stepFlight(flight,input,FIXED_STEP,height);
+      secondsInFlight += FIXED_STEP;
       accumulator -= FIXED_STEP;
       if (challenge?.status === "running") {
         const events = stepChallenge(challenge, previous, flight, FIXED_STEP);
@@ -652,6 +708,11 @@ function animate(now) {
   }
   updateAirplane();
   world.updateEnvironment(hour, $("weather").value, dt);
+  const hourText = $("time-value").textContent;
+  const localDate = new Date($("flight-date").value + "T" + hourText + ":00-03:00");
+  const environment = sky.update(localDate, $("weather").value, dt, flight);
+  environmentWind = environment.wind || environmentWind;
+  terrainEngine?.update(flight.x, flight.z);
   updateCamera(dt);
   if (mapTimer >= .18) {
     mapTimer = 0;
