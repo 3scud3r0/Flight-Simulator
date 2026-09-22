@@ -47,7 +47,11 @@ const sky = createSky(THREE, scene, world, renderer);
 const nowBrazil = new Intl.DateTimeFormat("en-CA", {
   timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit"
 });
-$("flight-date").value = nowBrazil.format(new Date());
+const brazilParts = Object.fromEntries(nowBrazil.formatToParts(new Date())
+  .filter(part => ["year", "month", "day"].includes(part.type))
+  .map(part => [part.type, part.value]));
+$("flight-date").value = brazilParts.year + "-" +
+  brazilParts.month + "-" + brazilParts.day;
 let terrainEngine = null, terrainRequested = true, environmentWind = {x:0,y:0,z:0};
 let secondsInFlight = 0, lastEnvironment = 0;
 function rebuildTerrain() {
@@ -56,6 +60,8 @@ function rebuildTerrain() {
   world.setRealTerrainEnabled(false);
   terrainRequested = $("terrain-mode").value === "real";
   $("geo-attribution").hidden = !terrainRequested;
+  $("credit-eox").hidden = $("imagery").value !== "eox";
+  $("credit-maptiler").hidden = $("imagery").value !== "maptiler";
   if (!terrainRequested) {
     $("terrain-status").textContent = "Cenário artístico: nenhum dado real carregado.";
     return;
@@ -709,7 +715,9 @@ function animate(now) {
   updateAirplane();
   world.updateEnvironment(hour, $("weather").value, dt);
   const hourText = $("time-value").textContent;
-  const localDate = new Date($("flight-date").value + "T" + hourText + ":00-03:00");
+  const localDate = new Date(
+    ($("flight-date").value || "2026-09-22") +
+    "T" + hourText + ":00-03:00");
   const environment = sky.update(localDate, $("weather").value, dt, flight);
   environmentWind = environment.wind || environmentWind;
   terrainEngine?.update(flight.x, flight.z);
