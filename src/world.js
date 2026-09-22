@@ -137,14 +137,14 @@ function label(THREE, text, color = "#e9f5ff") {
   const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: true }));
   s.scale.set(380, 95, 1); return s;
 }
-export function createWorld(THREE, scene, renderer) {
+export function createWorld(THREE, scene, renderer, compatibility = false) {
   const rand = rng();
   // 2K on desktop; 1K on coarse-pointer mobile hardware to limit GPU memory.
   const mobile = typeof matchMedia === "function" &&
     matchMedia("(pointer: coarse)").matches;
   // Small deterministic allocations first; advanced terrain streams later.
   const textureSize = Math.min(renderer.capabilities.maxTextureSize,
-    mobile ? 256 : 512);
+    compatibility ? 128 : mobile ? 256 : 512);
   const grass = proceduralTexture(THREE, "grass", textureSize);
   const asphalt = proceduralTexture(THREE, "asphalt", textureSize);
   const sand = proceduralTexture(THREE, "sand", textureSize);
@@ -155,7 +155,7 @@ export function createWorld(THREE, scene, renderer) {
   const groundMat = new THREE.MeshStandardMaterial({
     map: grass, vertexColors: true, roughness: 0.97, flatShading: false
   });
-  const segments = mobile ? 64 : 96, span = 63000;
+  const segments = compatibility ? 32 : mobile ? 64 : 96, span = 63000;
   const vertices = [], colors = [], uvs = [], indices = [];
   const color = new THREE.Color();
   for (let row = 0; row <= segments; row++) {
@@ -312,7 +312,7 @@ export function createWorld(THREE, scene, renderer) {
   const boxes = [[], [], [], [], []];
   for (const [lat, lon, sx, sz, count] of districts) {
     const origin = geo(lat, lon);
-    for (let i = 0; i < Math.round(count * (mobile ? .16 : .32)); i++) {
+    for (let i = 0; i < Math.round(count * (compatibility ? .05 : mobile ? .16 : .32)); i++) {
       const x = origin.x + (rand() - .5) * sx * 2;
       const z = origin.z + (rand() - .5) * sz * 2;
       const y = sampleHeight(x, z);
@@ -365,7 +365,7 @@ export function createWorld(THREE, scene, renderer) {
     color: 0xffffff, transparent: true, opacity: .83,
     depthWrite: false, roughness: 1
   });
-  const cloudCount = mobile ? 32 : 64;
+  const cloudCount = compatibility ? 12 : mobile ? 32 : 64;
   const clouds = new THREE.InstancedMesh(cloudGeo, cloudMat, cloudCount);
   for (let i = 0; i < cloudCount; i++) {
     dummy.position.set((rand() - .5) * 53000, 1250 + rand() * 2100,
