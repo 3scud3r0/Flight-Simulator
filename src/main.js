@@ -490,7 +490,7 @@ function animate(now) {
     const input = pilotInput();
     while (accumulator >= FIXED_STEP) {
       stepFlight(flight, input, FIXED_STEP,
-        sampleHeight(flight.x, flight.z));
+        Math.max(0, sampleHeight(flight.x, flight.z)));
       accumulator -= FIXED_STEP;
     }
   }
