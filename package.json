@@ -1,0 +1,13 @@
+{
+  "name": "rio-flight",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Simulador de voo educativo 3D do Rio de Janeiro para navegadores",
+  "scripts": {
+    "test": "node --test",
+    "check": "node --check src/physics.js && node --check src/world.js && node --check src/main.js"
+  },
+  "engines": { "node": ">=20" },
+  "license": "MIT"
+}
