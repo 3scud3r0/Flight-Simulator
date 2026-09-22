@@ -38,10 +38,11 @@ test("exactly three usable airports per world region",()=>{
  }
 });
 test("eight intercontinental airports, 32 regional, twenty special",()=>{
- const categories=Object.groupBy(AETHERIA_AIRPORTS,a=>a.category);
- assert.equal(categories.internacional.length,8);
- assert.equal(categories.regional.length,32);
- assert.equal(categories.especial.length,20);
+ const count=category=>AETHERIA_AIRPORTS.filter(
+  airport=>airport.category===category).length;
+ assert.equal(count("internacional"),8);
+ assert.equal(count("regional"),32);
+ assert.equal(count("especial"),20);
 });
 test("elevation stays finite across the entire megamap",()=>{
  for(let x=-1600000;x<=1600000;x+=320000)
