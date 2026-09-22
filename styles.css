@@ -198,3 +198,6 @@ kbd{padding:4px 7px;min-width:23px;text-align:center;background:#1a3549;color:#a
   background:#061421df}
   .controls-panel{max-height:calc(100dvh - 180px)}
 }
+
+.safe-link{display:block;margin:12px auto 0;color:#a8dfee;font-size:11px;text-decoration:underline;text-underline-offset:3px}
+.safe-link:hover,.safe-link:focus-visible{color:#fff}
