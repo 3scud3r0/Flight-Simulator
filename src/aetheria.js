@@ -619,7 +619,8 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
     " · "+tiles.size+"/"+((radius*2+1)**2)+" blocos"+
     (assets?" · "+assets.count+" objetos CC0":"")+
     (pbrReady?" · "+pbrReady+" materiais PBR":"")+
-    (scenery.count?" · "+scenery.count+" detalhes":"");
+    (scenery.count?" · "+scenery.count+" detalhes":"")+
+    (airportSignature?.root?.parent?" · terminal autoral":"");
  }
  function dispose(){
   active=false;clearTiles();
