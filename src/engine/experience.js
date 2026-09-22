@@ -11,7 +11,7 @@ export function layeredAudioSpectrum(layers){
  for(const layer of layers){const center=clamp(
  Math.round(layer.hz/22050*512),0,511);
  for(let k=Math.max(0,center-3);k<=Math.min(511,center+3);k++)
- bins[k]+=(layer.gain||0)*Math.exp(-((k-center)/1.3)**2)}
+ bins[k]+=(layer.gain||0)*Math.exp(-1*((k-center)/1.3)**2)}
  return bins;
 }
 export function cockpitOcclusion(exterior,inside,factor=.72){
