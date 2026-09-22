@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#06111f">
-  <meta name="description" content="Rio Flight: simulador de voo 3D gratuito, jogável no navegador, com o Rio de Janeiro, aeroportos e aeronaves.">
-  <title>RIO FLIGHT — Simulador de Voo</title>
+  <meta name="description" content="Flight Simulator: escolha o Rio de Janeiro ou Aetheria, com 20 regiões e 60 aeroportos fictícios. Duas opções de desempenho.">
+  <title>FLIGHT SIMULATOR — Rio de Janeiro &amp; Aetheria</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="stylesheet" href="./styles.css">
 </head>
@@ -13,13 +13,14 @@
   <canvas id="scene" aria-label="Cena tridimensional do simulador de voo"></canvas>
   <div id="vignette" aria-hidden="true"></div>
   <header class="topbar">
-    <a href="./" class="brand" aria-label="Rio Flight — início">
+    <a href="./" class="brand" aria-label="Flight Simulator — início">
       <span class="brand-icon">✦</span>
-      <span><strong>RIO<span class="brand-light">FLIGHT</span></strong><small>FLIGHT SIMULATOR · BRASIL</small></span>
+      <span><strong>FLIGHT<span class="brand-light"> SIMULATOR</span></strong><small>RIO DE JANEIRO · AETHERIA</small></span>
     </a>
     <div class="top-center"><span class="live-dot"></span><span id="flight-status">PRONTO PARA VOAR</span><span class="top-divider">/</span><span id="fps">-- FPS</span></div>
     <div class="top-actions">
       <button id="mobile-menu" class="icon-button" type="button" title="Configurações" aria-label="Abrir configurações" aria-expanded="false" aria-controls="control-panel">☰</button>
+      <button id="hud-toggle" class="icon-button hud-toggle" type="button" title="Ocultar HUD (U)" aria-label="Ocultar HUD e menus" aria-pressed="false">◫</button>
       <button id="help" class="icon-button" type="button" title="Controles (H)" aria-label="Abrir ajuda">?</button>
       <button id="sound" class="icon-button" type="button" title="Ativar som" aria-label="Ativar som">♪</button>
       <button id="fullscreen" class="icon-button" type="button" title="Tela cheia" aria-label="Tela cheia">⛶</button>
@@ -27,11 +28,12 @@
   </header>
 
   <aside id="control-panel" class="panel controls-panel" aria-label="Configuração do voo">
-    <div class="panel-heading"><span>PAINEL DE VOO</span><span class="subtle">01 / SIMULAÇÃO</span></div>
+    <div class="panel-heading"><span>FLIGHT SIMULATOR</span><span class="subtle">PAINEL DE VOO</span></div>
     <label for="world-select">MUNDO / MAPA</label>
     <select id="world-select">
       <option value="rio">Rio de Janeiro · cenário original</option>
-      <option value="aetheria">Aetheria · megamapa ficcional (20 regiões)</option>
+      <option value="aetheria">Aetheria completa · máxima qualidade</option>
+      <option value="aetheria-lite">Aetheria leve · máxima compatibilidade</option>
     </select>
     <div id="world-info" role="status" aria-live="polite" class="world-info">Rio de Janeiro · 3 aeroportos · relevo opcional</div>
     <div id="aetheria-controls" hidden>
@@ -126,7 +128,7 @@
     <div class="map-legend"><span><i class="legend-plane"></i> SUA POSIÇÃO</span><span><i class="legend-airport"></i> AEROPORTO</span></div>
   </aside>
 
-  <section id="challenge-hud" class="challenge-hud hidden" aria-label="Placar do desafio" aria-live="polite"><div class="challenge-kicker">◎ DESAFIO AÉREO · TÚNEL DO RIO</div><div class="challenge-stats"><div><small>PONTUAÇÃO</small><strong id="score">0</strong></div><div><small>ARGOLAS</small><strong id="rings-count">0 / 14</strong></div><div><small>TEMPO</small><strong id="timer">03:00</strong></div></div><div class="challenge-bottom"><span id="combo">COMBO ×1</span><span id="boost">IMPULSO INATIVO</span></div><div class="progress course-progress"><div id="course-progress"></div></div><div class="challenge-feedback" id="challenge-feedback" aria-live="polite"></div></section>
+  <section id="challenge-hud" class="challenge-hud hidden" aria-label="Placar do desafio" aria-live="polite"><div class="challenge-kicker">◎ FLIGHT SIMULATOR · DESAFIO DE ARGOLAS</div><div class="challenge-stats"><div><small>PONTUAÇÃO</small><strong id="score">0</strong></div><div><small>ARGOLAS</small><strong id="rings-count">0 / 14</strong></div><div><small>TEMPO</small><strong id="timer">03:00</strong></div></div><div class="challenge-bottom"><span id="combo">COMBO ×1</span><span id="boost">IMPULSO INATIVO</span></div><div class="progress course-progress"><div id="course-progress"></div></div><div class="challenge-feedback" id="challenge-feedback" aria-live="polite"></div></section>
   <div class="crosshair" aria-hidden="true"><span></span><span></span><i></i></div>
   <div id="warning" class="warning" role="status" aria-live="polite"></div>
 
@@ -141,7 +143,7 @@
       <button id="pause" type="button" title="Pausar (P)">Ⅱ <span id="pause-name">PAUSAR</span></button>
     </div>
   </section>
-  <div class="footer-hint"><span>W/S</span> ARFAGEM <b>·</b> <span>A/D</span> ROLAGEM <b>·</b> <span>Q/E</span> LEME <b>·</b> <span>+/−</span> POTÊNCIA <b>·</b> <span>V</span> CÂMERA <b>·</b> <span>H</span> AJUDA</div>
+  <div class="footer-hint"><span>U</span> HUD <b>·</b> <span>W/S</span> ARFAGEM <b>·</b> <span>A/D</span> ROLAGEM <b>·</b> <span>Q/E</span> LEME <b>·</b> <span>+/−</span> POTÊNCIA <b>·</b> <span>V</span> CÂMERA <b>·</b> <span>H</span> AJUDA</div>
 
   <div id="mobile" class="mobile-controls" aria-label="Controles de toque">
     <div><span>POTÊNCIA</span><input id="touch-throttle" type="range" min="0" max="100" value="76"></div>
@@ -149,23 +151,51 @@
     <div class="mobile-buttons"><button id="mobile-camera" type="button">CÂMERA</button><button id="mobile-pause" type="button">PAUSA</button><button id="rudder-left" type="button">◀ LEME</button><button id="rudder-right" type="button">LEME ▶</button><button id="touch-flaps" type="button">FLAPS</button><button id="touch-gear" type="button">TREM</button></div>
   </div>
 
+  <button id="hud-restore" type="button" class="hud-restore" title="Mostrar interface (U)" aria-label="Mostrar HUD e menus">MOSTRAR HUD · U</button>
   <div id="welcome" class="overlay" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
     <div class="welcome-card">
-      <div class="eyebrow"><span class="live-dot"></span> SEU PRÓXIMO VOO COMEÇA AQUI</div>
-      <div class="hero-emblem">✦</div>
-      <h1 id="welcome-title">O RIO É<br><em>SEU CÉU.</em></h1>
-      <label for="welcome-world" class="world-welcome-label">ESCOLHA SEU MUNDO</label>
+      <div class="welcome-overline"><span class="live-dot"></span> SEU MUNDO. SUA AERONAVE. SEU VOO.</div>
+      <div class="welcome-symbol">✦ <span>FLIGHT / SIMULATOR</span> ✦</div>
+      <h1 id="welcome-title">FLIGHT SIMULATOR</h1>
+      <p class="welcome-tagline">DOS AEROPORTOS DO RIO A UM PLANETA INTEIRO.</p>
+      <p id="welcome-desc">Escolha o cenário e o desempenho antes de decolar. Explore o Rio original ou atravesse Aetheria: 20 regiões e 60 aeroportos fictícios em um único mundo contínuo.</p>
+      <label for="welcome-world" class="world-welcome-label">01 / SELECIONE SEU MUNDO</label>
       <select id="welcome-world" class="world-welcome-select">
         <option value="rio">RIO DE JANEIRO · CENÁRIO ORIGINAL</option>
-        <option value="aetheria">AETHERIA · 20 REGIÕES / 60 AEROPORTOS</option>
+        <option value="aetheria">AETHERIA COMPLETA · MÁXIMA QUALIDADE</option>
+        <option value="aetheria-lite">AETHERIA LEVE · COMPATIBILIDADE</option>
       </select>
-      <p id="welcome-desc">Decole sobre a Baía de Guanabara, contorne o Pão de Açúcar e descubra o Rio de Janeiro em um simulador 3D feito para o navegador.</p>
-      <div id="welcome-features" class="welcome-features"><span>◈ 3 AERONAVES</span><span>◈ 3 AEROPORTOS</span><span>◈ VOO LIVRE + DESAFIO</span></div>
-      <button id="start" class="button-primary hero-button" type="button">INICIAR VOO LIVRE &nbsp; ↗</button>
-      <button id="welcome-challenge" class="button-primary hero-button challenge-start" type="button">◎ INICIAR DESAFIO DE ARGOLAS &nbsp; ↗</button>
-      <button id="start-runway" class="link-button" type="button">OU COMEÇAR NA PISTA DE DECOLAGEM →</button>
-      <small>WebGL recomendado · Teclado, controle USB/Bluetooth e celular · Gratuito</small>
-      <a class="safe-link" href="?safe=1">Seu dispositivo está lento? Abrir modo compatibilidade</a>
+      <div class="world-cards" role="group" aria-label="Seleção visual do mundo">
+        <button type="button" class="world-choice is-active" data-world="rio" aria-pressed="true">
+          <span class="world-choice-art rio-art" aria-hidden="true"><span>RIO</span></span>
+          <span class="world-choice-copy"><strong>RIO DE JANEIRO</strong>
+            <small>O cenário original · 3 aeroportos · relevo opcional</small>
+            <em>01 / ORIGINAL</em></span>
+        </button>
+        <button type="button" class="world-choice" data-world="aetheria" aria-pressed="false">
+          <span class="world-choice-art aetheria-art" aria-hidden="true"><span>Æ</span></span>
+          <span class="world-choice-copy"><strong>AETHERIA COMPLETA</strong>
+            <small>20 regiões · 60 aeroportos · efeitos avançados</small>
+            <em>02 / MÁXIMA QUALIDADE</em></span>
+        </button>
+        <button type="button" class="world-choice" data-world="aetheria-lite" aria-pressed="false">
+          <span class="world-choice-art lite-art" aria-hidden="true"><span>◈</span></span>
+          <span class="world-choice-copy"><strong>AETHERIA LEVE</strong>
+            <small>O mesmo universo · 60 aeroportos · inicialização protegida</small>
+            <em>03 / MODO LEVE</em></span>
+        </button>
+      </div>
+      <div id="welcome-features" class="welcome-features">
+        <span>◈ 3 AERONAVES</span><span>◈ 2 MUNDOS</span>
+        <span>◈ HUD OCULTÁVEL</span>
+      </div>
+      <div class="welcome-actions">
+        <button id="start" class="button-primary hero-button" type="button">INICIAR VOO LIVRE ↗</button>
+        <button id="welcome-challenge" class="button-secondary hero-button challenge-start" type="button">◎ DESAFIO DE ARGOLAS</button>
+      </div>
+      <button id="start-runway" class="link-button" type="button">COMEÇAR NA PISTA →</button>
+      <small>Teclado, controle e celular · Pressione U para ver somente a simulação</small>
+      <a class="safe-link" href="?world=aetheria-lite&amp;safe=1">Problemas no navegador? Abrir Aetheria leve</a>
     </div>
   </div>
 
@@ -183,6 +213,7 @@
         <div><kbd>B</kbd><span>Freios (segurar)</span></div>
         <div><kbd>V</kbd> / <kbd>P</kbd><span>Câmera / pausar</span></div>
         <div><kbd>R</kbd> / <kbd>H</kbd><span>Reiniciar / ajuda</span></div>
+        <div><kbd>U</kbd><span>Ocultar / mostrar toda a HUD</span></div>
         <div><kbd>C</kbd><span>Alternar Voo Livre / Desafio</span></div>
         <div><kbd>Gamepad</kbd><span>Manche esquerdo / gatilhos / botões</span></div>
       </div>
