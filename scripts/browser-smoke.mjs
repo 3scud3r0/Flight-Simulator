@@ -103,8 +103,8 @@ try{
  await full.screenshot({path:new URL("tela-inicial.png",proof).pathname});
  await choose(full,"aetheria");
  const fullInfo=await full.locator("#world-info").innerText();
- assert.match(fullInfo,/qualidade máxima/i,
-  "The full renderer should load, not silently fall back: "+fullInfo);
+ assert.match(fullInfo,/\\/25 blocos/i,
+  "The 25-tile full renderer should load, not the 9-tile fallback: "+fullInfo);
  await fly(full,"aetheria-full.png");
  // Check the world moves and update loop has not frozen.
  await full.keyboard.down("Equal");
@@ -136,7 +136,7 @@ try{
  await load(broken,"");
  await choose(broken,"aetheria");
  assert.match(await broken.locator("#world-info").innerText(),
-  /recuperação/i);
+  /Aetheria leve/i);
  await fly(broken,"aetheria-offline-recovery.png");
  await broken.close();
 
