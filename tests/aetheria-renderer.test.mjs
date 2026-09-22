@@ -38,8 +38,8 @@ class Color{
  setRGB(r,g,b){this.r=r;this.g=g;this.b=b;return this}
 }
 class Material{
- constructor(options={}){this.color=new Color(options.color??0xffffff);
- Object.assign(this,options)}
+ constructor(options={}){Object.assign(this,options);
+ this.color=new Color(options.color??0xffffff)}
  dispose(){this.disposed=true}
 }
 class Mesh extends Object3D{
