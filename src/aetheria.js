@@ -189,6 +189,28 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
       }
       pbrTextures.push(texture);pbrReady++;
      },undefined,()=>{});
+  for(const [type,file] of [
+   ["earth","gravel_ground_01_nor_gl_1k.png"],
+   ["rock","rocks_ground_06_nor_gl_1k.png"],
+   ["asphalt","aerial_asphalt_01_nor_gl_1k.png"]])
+    texLoader.load(new URL("../assets/pbr/"+file,import.meta.url).href,
+     texture=>{
+      if(!active){texture.dispose();return}
+      texture.wrapS=texture.wrapT=THREE.RepeatWrapping;
+      texture.repeat.set(35,35);
+      texture.anisotropy=Math.min(4,
+       renderer.capabilities.getMaxAnisotropy?.()||2);
+      const mat=groundMaterials.get(type);
+      mat.normalMap=texture;
+      mat.normalScale=new THREE.Vector2(.35,.35);
+      mat.needsUpdate=true;
+      if(type==="asphalt"){
+       airportMat.normalMap=texture;
+       airportMat.normalScale=new THREE.Vector2(.42,.42);
+       airportMat.needsUpdate=true;
+      }
+      pbrTextures.push(texture);pbrReady++;
+     },undefined,()=>{});
  }
  const waterMaterial=new THREE.MeshStandardMaterial({
   color:0x145778,roughness:.31,metalness:.05,transparent:true,opacity:.96});
