@@ -1,0 +1,33 @@
+name: Engine 180 - validation
+on:
+  push:
+    branches: [engine/180-algorithms]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Check syntax
+        run: npm run check
+      - name: Run entire test suite
+        run: npm test
+      - name: Verify indexed catalog
+        run: |
+          node --input-type=module -e "
+          import {catalog} from './src/engine/index.js';
+          if (catalog.length !== 180) process.exit(1);
+          if (new Set(catalog.map(x => x.name)).size !== 180) process.exit(2);
+          "
