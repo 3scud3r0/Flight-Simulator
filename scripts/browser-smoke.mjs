@@ -15,7 +15,7 @@ const proof=new URL("../proof/",import.meta.url);
 await mkdir(proof,{recursive:true});
 const logs=[];
 const server=spawn("python3",["-m","http.server","4173","--bind","127.0.0.1"],
- {stdio:["ignore","pipe","pipe"]});
+ {stdio:"ignore"});
 let browser;
 let failMessage="";
 async function ready(){
@@ -99,7 +99,7 @@ try{
   recordVideo:{dir:new URL(".",proof).pathname,
    size:{width:1365,height:768}}});
  const full=await ctx.newPage();
- await load(full,"?safe=0"); // start at Rio; safe=0 is intentionally not used here
+ await load(full,""); // normal renderer, without the compatibility flag
  await choose(full,"aetheria");
  const fullInfo=await full.locator("#world-info").innerText();
  assert.match(fullInfo,/qualidade máxima/i,
@@ -132,7 +132,7 @@ try{
  // still load, fly and allow Rio to be restored.
  const broken=await browser.newPage(common);
  await broken.route("**/src/aetheria.js**",route=>route.abort());
- await load(broken,"?safe=0");
+ await load(broken,"");
  await choose(broken,"aetheria");
  assert.match(await broken.locator("#world-info").innerText(),
   /recuperação/i);
