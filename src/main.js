@@ -306,6 +306,49 @@ function begin(runway = false, requestedMode = $("game-mode").value) {
   $("flight-status").textContent = mode === "challenge"
     ? "DESAFIO AÉREO" : runway ? "PRONTO PARA DECOLAR" : "EM VOO";
 }
+function pollController() {
+  const enabled = $("gamepad-enabled").checked;
+  let pad = null;
+  if (enabled && typeof navigator.getGamepads === "function") {
+    try { pad = chooseGamepad(navigator.getGamepads()); }
+    catch { pad = null; }
+  }
+  const identity = pad ? pad.index + ":" + pad.id : "";
+  if (identity !== lastGamepadId) {
+    previousGamepadButtons = [];
+    lastGamepadId = identity;
+    $("gamepad-status").textContent = pad
+      ? "CONECTADO: " + (pad.id || "Gamepad").slice(0, 42)
+      : enabled && typeof navigator.getGamepads === "function"
+        ? "Nenhum controle detectado · pressione um botão para ativar"
+        : enabled ? "Gamepad API indisponível neste navegador"
+          : "Controle desativado nas configurações";
+  }
+  gamepadState = readGamepad(pad, previousGamepadButtons,
+    $("invert-gamepad").checked);
+  previousGamepadButtons = gamepadState.buttons;
+  if (!enabled || !gamepadState.connected) return;
+  for (const action of gamepadState.actions) {
+    if (action === "start") {
+      if (!$("result-overlay").classList.contains("hidden")) begin(false, "challenge");
+      else if (!$("welcome").classList.contains("hidden")) begin(false, "free");
+      else if (!$("help-overlay").classList.contains("hidden")) toggleHelp(false);
+    } else if (action === "pause" && running &&
+      $("result-overlay").classList.contains("hidden")) {
+      togglePause();
+    } else if (action === "help") {
+      toggleHelp($("help-overlay").classList.contains("hidden"));
+    } else if (running && !paused &&
+      $("result-overlay").classList.contains("hidden")) {
+      if (action === "gear") flight.gear = !flight.gear;
+      if (action === "flaps") flight.flaps = (flight.flaps + .5) % 1.5;
+      if (action === "camera") cycleCamera();
+    }
+  }
+}
+$("gamepad-enabled").addEventListener("change", () => { lastGamepadId = "_refresh"; });
+window.addEventListener("gamepadconnected", () => { lastGamepadId = "_refresh"; });
+window.addEventListener("gamepaddisconnected", () => { lastGamepadId = "_refresh"; });
 function pilotInput() {
   const press = (...codes) => codes.some(code => keys.has(code));
   return {
