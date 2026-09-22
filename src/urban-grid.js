@@ -10,6 +10,13 @@ const CELL=2400;
 const land=(value)=>Number.isFinite(value)&&value>2;
 const inTile=(value,min)=>value>=min&&value<min+CELL;
 
+/** Keep city vegetation out of the globally aligned avenue corridors. */
+export function isStreetCorridor(x,z,margin=7){
+ const xDistance=Math.abs(x-Math.round(x/STREET_GRID)*STREET_GRID);
+ const zDistance=Math.abs(z-Math.round(z/STREET_GRID)*STREET_GRID);
+ return Math.min(xDistance,zDistance)<STREET_WIDTH/2+margin;
+}
+
 /** Returns road boxes and lamp placements in world metres. */
 export function planUrbanGridTile(ix,iz,{
  sampleHeight,regionAt,clearance,mobile=false
