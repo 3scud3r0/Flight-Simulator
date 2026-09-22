@@ -25,6 +25,7 @@ jobs:
           npm install --no-save --no-package-lock --ignore-scripts --no-audit --no-fund three@0.180.0 playwright@1.55.0
           mkdir -p vendor
           cp node_modules/three/build/three.module.js vendor/three.module.js
+          npx playwright install ffmpeg
       - uses: browser-actions/setup-chrome@v1
         id: chrome
         with:
