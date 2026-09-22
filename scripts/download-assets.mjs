@@ -64,7 +64,8 @@ if(hardFailures.length){
  process.exit(1);
 }
 for(const id of POLY_HAVEN_MATERIALS){
- for(const kind of ["diff",...(id==="aerial_asphalt_01"?
+ for(const kind of ["diff",...(id==="aerial_asphalt_01"||
+   id==="gravel_ground_01"||id==="rocks_ground_06"?
    ["nor_gl"]:[])]){
   const file=id+"_"+kind+"_1k.png";
   await download(
