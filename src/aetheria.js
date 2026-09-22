@@ -18,6 +18,7 @@ import {createAssetLibrary} from "./asset-library.js";
 import {createSceneryLayer} from "./scenery-renderer.js";
 import {terrainSubdivisions} from "./terrain-detail.js";
 import {createAirportSignature} from "./airport-signature.js";
+import {novaIrisCoastHeight} from "./coastline.js";
 
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
 const mix=(a,b,t)=>a+(b-a)*t;
@@ -92,7 +93,9 @@ function domainHeight(region,x,z){
   elevation+=broad*1.5+detail*720;break;
  }
  }
- return elevation+micro;
+ const inland=elevation+micro;
+ return region.id==="nova-iris"?
+  novaIrisCoastHeight(x,z,inland):inland;
 }
 export function sampleAetheriaHeight(x,z){
  if(!Number.isFinite(x)||!Number.isFinite(z))return 0;
