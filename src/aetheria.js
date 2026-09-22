@@ -300,6 +300,27 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
     indices.push(i,c,i+1,i+1,c,c+1);
    }
   }
+  // Adjacent LOD rings sample different heights along shared boundaries.
+  // Duplicate the boundary vertices and extend vertical skirts downward:
+  // no visible cracks and no altered physics/collision heights.
+  const rim=[];
+  for(let col=0;col<N;col++)rim.push(col);
+  for(let row=0;row<N;row++)rim.push(row*(N+1)+N);
+  for(let col=N;col>0;col--)rim.push(N*(N+1)+col);
+  for(let row=N;row>0;row--)rim.push(row*(N+1));
+  const skirtStart=verts.length/3;
+  for(const vertex of rim){
+   const p=vertex*3,t=vertex*2;
+   verts.push(verts[p],verts[p+1],verts[p+2]);
+   verts.push(verts[p],verts[p+1]-135,verts[p+2]);
+   colors.push(colors[p],colors[p+1],colors[p+2]);
+   colors.push(colors[p]*.65,colors[p+1]*.65,colors[p+2]*.65);
+   uv.push(uv[t],uv[t+1],uv[t],uv[t+1]);
+  }
+  for(let k=0;k<rim.length;k++){
+   const a=skirtStart+2*k,b=skirtStart+2*((k+1)%rim.length);
+   indices.push(a,b,a+1,b,b+1,a+1);
+  }
   const geometry=new THREE.BufferGeometry();
   geometry.setAttribute("position",new THREE.Float32BufferAttribute(verts,3));
   geometry.setAttribute("color",new THREE.Float32BufferAttribute(colors,3));
