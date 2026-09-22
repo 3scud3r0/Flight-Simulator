@@ -4,7 +4,7 @@
  * always produce the same placement on all devices and after tile eviction.
  */
 import {AETHERIA_AIRPORTS,aetheriaRegionAt} from "./aetheria-data.js";
-import {planUrbanGridTile} from "./urban-grid.js";
+import {planUrbanGridTile,isStreetCorridor} from "./urban-grid.js";
 
 export const SCENERY_CELL = 2400;
 const CITY_X = -11700, CITY_Z = -8600;
@@ -105,6 +105,7 @@ export function planSceneryTile(ix,iz,{
  for(let i=0;i<attempts;i++){
   const x=startX+rand()*SCENERY_CELL,z=startZ+rand()*SCENERY_CELL;
   if(!safe(x,z))continue;
+  if(urban&&isStreetCorridor(x,z))continue;
   const y=heightAt(x,z);
   if(y===null)continue;
   if(urban&&Math.hypot(x-CITY_X,z-CITY_Z)<8600&&rand()<.64)
