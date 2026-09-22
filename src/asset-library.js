@@ -1,7 +1,7 @@
 /**
  * Scene placement for 50 reusable Kenney CC0 meshes, self-hosted at build time.
  * Models are created on approach, not at world initialization and not for every
- * one of the 60 airports. All GLB geometry/textures remain shared and cached.
+ * the nearby airfield. All GLB geometry/textures remain shared and cached.
  */
 import {KENNEY_MODELS} from "./asset-manifest.js";
 const URL_PREFIX=new URL("../assets/kenney/",import.meta.url);
