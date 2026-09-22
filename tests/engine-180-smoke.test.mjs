@@ -1,0 +1,223 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {catalog,algorithmGroups} from "../src/engine/index.js";
+
+// One executable representative fixture for EACH individual kernel A001–A180.
+// These smoke cases complement—not replace—numerical accuracy and GPU tests.
+const V=(x=0,y=0,z=0)=>({x,y,z});
+const H=()=>Float32Array.from({length:64},(_,i)=>i===27?12:i/20);
+const ZERO=()=>({w:1,x:0,y:0,z:0});
+const STATE=()=>({q:ZERO(),omega:V(),velocity:V(20,0,0),
+ position:V(0,500,0)});
+const RAY=()=>({origin:V(0,0,0),direction:V(0,0,1)});
+const A=[{id:"A",x:0,z:0},{id:"B",x:1200,z:900}];
+const SITE=[{x:0,y:0,material:"rock"},{x:1,y:1,material:"sand"}];
+const RUNWAY={id:"01",length:1200,width:45};
+const LAND=[{id:"L",x:700,z:900}];
+const GRID=()=>Float32Array.from({length:16},(_,i)=>i);
+const PLANE=[{n:V(0,1,0),d:4}];
+const MAT=()=>({albedo:[.5,.5,.5],metallic:.1,roughness:.8});
+const sample=()=>.002;
+const fixtures={
+ perlin2:()=>[.4,.8,11],
+ simplex2:()=>[.4,.8,11],
+ fractalBrownianMotion:()=>[.4,.8,{seed:3}],
+ ridgedMultifractal:()=>[.4,.8,{seed:3}],
+ domainWarp:()=>[.4,.8,3,.7],
+ tectonicUplift:()=>[.4,.8,[{x:0,y:0,vx:1,vy:1},{x:1,y:1,vx:-1,vy:-1}]],
+ voronoiGeology:()=>[.4,.8,SITE],
+ hydraulicErosion:()=>[H(),8,8,{iterations:5}],
+ thermalErosion:()=>[H(),8,8,{iterations:2}],
+ aeolianErosion:()=>[H(),8,8,{steps:2}],
+ depositSediment:()=>[H(),new Float32Array(64).fill(1),8,8],
+ riverFlowDirection:()=>[H(),8,8],
+ watershedBasins:()=>[new Int32Array(64).fill(-1),8,8],
+ glacierProfile:()=>[50,120],
+ volcanicCaldera:()=>[2,3],
+ caveDensity:()=>[5,6,7],
+ marchingCubesTetrahedra:()=>[(x,y,z)=>x+y+z-2.4,3,3,3],
+ dualContourCell:()=>[(x,y,z)=>x-.5,0,0,0],
+ signedDistanceSphere:()=>[V(1,2,3),V(),5],
+ biomeWeights:()=>[{altitude:1200,temperature:18,moisture:.6,slope:.35}],
+ quadtree:()=>[{x:0,y:0,size:64},2,b=>b.size,1,80],
+ octree:()=>[{x:0,y:0,z:0,size:64},2,()=>1,80],
+ geometryClipmap:()=>[V(15,0,20),3],
+ continuousLOD:()=>[90],
+ screenSpaceError:()=>[5,200,Math.PI/3,1080],
+ geomorph:()=>[[0,1],[1,0],.3],
+ stitchTileSkirt:()=>[[V(),V(1,0,0),V(0,0,1)],[0,1,2]],
+ frustumCullSphere:()=>[PLANE,V(0,0,0),2],
+ occlusionCull:()=>[[{depth:3,left:0,right:5,top:0,bottom:5}],{depth:10,left:1,right:4,top:1,bottom:4}],
+ hierarchicalZBuffer:()=>[GRID(),4,4],
+ packInstances:()=>[[new Float32Array(16).fill(1)]],
+ indirectDrawCommands:()=>[[{indexCount:6,instances:[1,2]}]],
+ spatialStreamQueue:()=>[V(),[{x:1,z:2},{x:5,z:8}]],
+ predictivePrefetch:()=>[V(),V(5,0,2),[{x:2,z:6},{x:5,z:3}]],
+ memoryBudget:()=>[[{id:"x",bytes:20},{id:"y",bytes:10}],25],
+ disposeResources:()=>[[{dispose(){}}]],
+ boundedWorkerPool:()=>[[1,2,3],2,async n=>n*2],
+ originRebase:()=>[[V(10000,5,20000)],V(10000,0,20000)],
+ splitDouble:()=>[1e15+.2],
+ prioritizedWork:()=>[[{cost:1,priority:3},{cost:2,priority:2}],2],
+ materialByBiome:()=>[1400,.7,18,.22],
+ pbrMaterial:()=>[MAT()],
+ normalMapFromHeight:()=>[(x,y)=>x+y,1,2],
+ parallaxOcclusion:()=>[{x:.5,y:.5},V(.2,.1,1),()=>.7],
+ triplanarWeights:()=>[V(.4,.8,.2)],
+ textureSplat:()=>[[[1,0,0],[0,0,1]],[.5,.5]],
+ virtualTexturePages:()=>[{left:0,right:256,top:0,bottom:256},2],
+ anisotropicLevel:()=>[Math.PI/4],
+ projectedDecal:()=>[V(1,0,2),{position:V(),rotation:0,width:5,length:5,depth:2}],
+ wetnessMaterial:()=>[MAT(),.7],
+ snowAccumulation:()=>[V(0,1,0),3000,-5,.7],
+ microdetailBlend:()=>[[.1,.2],[.7,.9],10],
+ seasonalVegetation:()=>[30,-20,.8],
+ ecologicalSpecies:()=>[1,2,[{id:"tree",temp:20,tempRange:20,moisture:.5,moistureRange:1,altitude:50,altitudeRange:1000}]],
+ impostorSelection:()=>[16],
+ solarEphemeris:()=>[new Date("2026-09-22T15:00:00Z"),-22.93,-43.21],
+ lunarEphemeris:()=>[new Date("2026-09-22T15:00:00Z"),-22.93,-43.21],
+ rayleighScattering:()=>[550],
+ mieScattering:()=>[.5,.7],
+ multipleScattering:()=>[.2,.9,3],
+ aerialPerspective:()=>[[.3,.5,.8],2500],
+ volumetricFogRay:()=>[RAY(),6,()=>({density:.001,light:[.5,.7,.8]})],
+ volumetricLightBeam:()=>[V(0,0,1),{position:V(),direction:V(0,0,1)}],
+ cascadedShadowSplits:()=>[.2,1000,4],
+ contactShadows:()=>[.2,.7],
+ screenSpaceAmbientOcclusion:()=>[.4,[.6,.7,.4]],
+ screenSpaceReflectionRay:()=>[V(),V(0,0,1),()=>.5,{steps:4}],
+ imageBasedLighting:()=>[V(0,1,0),.7,{sample:()=>[.5,.4,.3]}],
+ automaticExposure:()=>[.7,1,.016],
+ acesTonemap:()=>[[.3,1,4]],
+ selectiveBloom:()=>[[.3,1,4]],
+ cityNightLights:()=>[1,3,5,23],
+ aviationLightPhase:()=>[4],
+ airportLighting:()=>[-6,4000,2000],
+ cloudRaymarch:()=>[RAY(),6,()=>.5],
+ worleyPerlinCloud:()=>[50,500,40],
+ cloudWeatherMap:()=>[40,50,1],
+ temporalReprojection:()=>[[.5,.6],[.3,.5],{x:.5,y:0}],
+ cloudShadowMap:()=>[()=>.3,8],
+ cumulonimbusProfile:()=>[3000],
+ evolveCloudCover:()=>[.3,.9,.1],
+ thermalLapseRate:()=>[1000],
+ internationalStandardAtmosphere:()=>[1000],
+ threeDimensionalWind:()=>[100,300,40,10],
+ windShear:()=>[V(1,0,1),V(3,1,4),500],
+ correlatedGust:()=>[.2,.1,()=>.5],
+ orographicTurbulence:()=>[V(5,0,2),{x:.5,z:.3},500],
+ thermalUpdraft:()=>[30,600],
+ precipitationIntensity:()=>[.6,2,12],
+ airframeIcing:()=>[-3,.6,70,.1],
+ meteorologicalVisibility:()=>[.5,.2,.1,.1],
+ movingWeatherFront:()=>[100,200,40],
+ gerstnerWaves:()=>[2,3,.4,[{dx:1,dz:.4,wavelength:40,amplitude:1}]],
+ fftOceanSurface:()=>[[4,0,0,0],[0,0,0,0],2],
+ oceanSpectrum:()=>[.3,.5,V(3,0,5)],
+ fresnelReflection:()=>[.5],
+ waterAbsorption:()=>[[.4,.5,.7],3],
+ foamGeneration:()=>[.6,.4,1],
+ shoalingWaves:()=>[1,4,3],
+ wakeField:()=>[2,-3,5],
+ riverFlowField:()=>[V(3,0,4),[V(),V(100,0,100)],3],
+ sunGlitter:()=>[V(0,1,0),V(1,1,0),V(0,1,1)],
+ rigidBody6DOF:()=>[STATE(),V(0,900,0),V(),1200,V(300,500,400),1/60],
+ quaternionIntegrate:()=>[ZERO(),V(.1,.2,.3),.1],
+ rungeKutta4:()=>[[1],.1,([x])=>[x]],
+ semiImplicitIntegrator:()=>[V(),V(1,2,3),V(0,-9.8,0),.1],
+ fixedStepInterpolation:()=>[{position:V()},{position:V(1,2,3)},.005,.016],
+ aeroCoefficientModel:()=>[.05,.02],
+ lookupAeroTable:()=>[[{x:0,value:1},{x:1,value:2}],.5],
+ angleOfAttackSideslip:()=>[V(1,-2,-60)],
+ nonlinearLift:()=>[.1],
+ stallHysteresis:()=>[false,.3],
+ inducedDrag:()=>[.5],
+ parasiteDrag:()=>[.02,true,.3],
+ groundEffect:()=>[2,12,.6],
+ stabilityDerivatives:()=>[.05,.03,V()],
+ aerodynamicDamping:()=>[V(.1,.2,.3),400,10,V(1,1,1)],
+ controlAuthority:()=>[.3,500,200],
+ engineSpool:()=>[.2,.8,.1],
+ propellerPerformance:()=>[1800,40],
+ turbineThrust:()=>[.8,1000,.3],
+ fuelTransfer:()=>[[{fuel:30,capacity:80,arm:-1},{fuel:40,capacity:80,arm:1}],5,0,1],
+ inertiaTensor:()=>[[{mass:500,x:2,y:1,z:3}]],
+ landingGearSpring:()=>[.3,.4],
+ tireFriction:()=>[3000,.1],
+ differentialBraking:()=>[.3,.7,20],
+ continuousCollision:()=>[V(0,10,0),V(0,-20,0),1,()=>0],
+ impactEnergy:()=>[1000,V(2,-3,4),V(0,1,0)],
+ pidAutopilot:()=>[.3,.2,.1,.016],
+ lqrController:()=>[[[1,1],[0,1]],[[0],[1]],[[1,0],[0,1]],1],
+ parametricFuselage:()=>[[{z:-1,cx:0,cy:0,rx:.3,ry:.3},{z:1,cx:0,cy:0,rx:.8,ry:.8}]],
+ airfoilWingMesh:()=>[{span:7,stations:4}],
+ aircraftLOD:()=>[500],
+ movableSurfaces:()=>[{aileron:.3,elevator:.2,rudder:.1,flaps:.4}],
+ landingGearAnimation:()=>[.2,true,.1],
+ propellerMotionBlur:()=>[1800,60],
+ layeredCabinMaterial:()=>[[.3,.5,.8]],
+ flightInstruments:()=>[{ias:50,y:400,verticalSpeed:3,heading:1,roll:.2,pitch:.1,throttle:.7}],
+ proceduralCockpitAnimation:()=>[{elevator:.3,aileron:.3,rudder:.2},{throttle:.6,gear:true,flaps:.3}],
+ inertialCamera:()=>[{position:V(),pitch:0,roll:0},{position:V(1,2,3),pitch:.1,roll:.2},V(),.1],
+ structuralVibration:()=>[1,100,.2],
+ componentDamage:()=>[[{position:V(),health:1,toughness:100}],{position:V(),radius:5,energy:20}],
+ proceduralRoadNetwork:()=>[[V(),V(10,0,10),V(20,0,20)]],
+ urbanZoning:()=>[5000,.2,.5,.7],
+ architecturalGrammar:()=>[{x:0,z:0,width:20,depth:30}],
+ airportLayout:()=>[V(),.2,[{length:1000,width:40}]],
+ proceduralRunwayMarkings:()=>[1100,40],
+ aerodromeLights:()=>[RUNWAY],
+ vegetationDistribution:()=>[{x:0,z:0,width:10,height:10},.05,()=>true,1,20],
+ aggregateGroundTraffic:()=>[[{length:100}],3,.1],
+ aerialTrafficRoutes:()=>[A,100],
+ trafficStateMachine:()=>["parked","clearance"],
+ fictionalATC:()=>[{state:"approach"},[],RUNWAY],
+ obstacleAvoidingPath:()=>[[0,1],0,1,i=>i===0?[{node:1,cost:2}]:[],()=>0],
+ proceduralEngineAudio:()=>[.5,1800],
+ layeredAudioSpectrum:()=>[[{hz:1000,gain:.8}]],
+ cockpitOcclusion:()=>[{gain:.5},{gain:.3}],
+ spatialAudio:()=>[V(1,2,3),V()],
+ aerodynamicAudio:()=>[90,.2,.2],
+ adaptiveHUD:()=>[{y:300,speed:50,gear:true,stall:false}],
+ deterministicReplay:()=>[{x:0},[1,2],(s,i)=>({x:s.x+i})],
+ cinematicCamera:()=>[V(10,100,10),V()],
+ proceduralPrecisionCourse:()=>[[V(0,200,0),V(400,200,0)],()=>0],
+ trajectoryScore:()=>[[{hit:true,precision:.8,speed:60}]],
+ combinatorialMissions:()=>[A,LAND,["rescue","cargo"]],
+ difficultyScaling:()=>[2000,3],
+ adaptiveResolution:()=>[1,24],
+ dynamicQualityBudget:()=>[{frameMs:30},{cloudSteps:20,shadowDistance:1000,vegetationDistance:300}],
+ gpuTimeProfiling:()=>[[2,3,4]],
+ objectPool:()=>[()=>({n:1}),x=>{x.n=0},2],
+ allocationFreeStep:()=>[{x:0,y:0,z:0,vx:1,vy:1,vz:1},V(),.016],
+ priorityScheduling:()=>[[{kind:"physics",cost:1},{kind:"graphics",cost:2}],2],
+ gracefulDegradation:()=>[{volumetrics:true,proceduralTerrain:false},["terrainNetwork"]],
+ devicePresets:()=>[{mobile:true}],
+ frameWorkBudget:()=>[[{estimateMs:1},{estimateMs:2}],2],
+ physicsInvariantTests:()=>[{x:0,y:0,z:0,vx:0,vy:0,vz:0,speed:0,q:ZERO()}],
+ visualRegression:()=>[Uint8Array.from([0,128,255]),Uint8Array.from([1,127,255])],
+ memoryLeakWatch:()=>[[10,12,15,17]],
+ localTelemetry:()=>[[{ms:16},{ms:20}]],
+ errorRecovery:()=>[async()=>5,()=>0]
+};
+const safe=(value,depth=0)=>{
+ if(depth>8)throw Error("Unbounded nesting");
+ if(typeof value==="number")return Number.isFinite(value);
+ if(value==null||typeof value==="boolean"||typeof value==="string"||
+ typeof value==="function")return true;
+ if(value instanceof Set)return [...value].every(v=>safe(v,depth+1));
+ if(value instanceof Map)return [...value].every(pair=>safe(pair,depth+1));
+ if(typeof value==="object")return Object.values(value).every(v=>safe(v,depth+1));
+ return false;
+};
+test("one representative execution for every indexed algorithm",async t=>{
+ assert.equal(Object.keys(fixtures).length,180,"There must be 180 explicit fixtures");
+ for(const entry of catalog){
+  await t.test(entry.code+" "+entry.name,async()=>{
+   const fixture=fixtures[entry.name];
+   assert.equal(typeof fixture,"function","Missing fixture");
+   const result=await entry.run(...fixture());
+   assert.ok(safe(result),"Unexpected NaN or infinity in result");
+  });
+ }
+});
