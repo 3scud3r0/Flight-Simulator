@@ -16,7 +16,7 @@
 - Três aeronaves **inspiradas** em aviação geral, turboélice regional e jato comercial; são modelos 3D construídos no código, não réplicas de fabricantes.
 - Três aeroportos simplificados: Santos Dumont (SBRJ), Galeão (SBGL) e Jacarepaguá (SBJR), com pistas, faixas, pátios e sinalização ilustrativa.
 - Cenário procedural de ~63 × 63 km: litoral, montanhas, Baía de Guanabara aproximada, prédios instanciados, Pão de Açúcar e Cristo Redentor estilizados.
-- Texturas geradas localmente pela própria aplicação no navegador: solo, água, areia, concreto e asfalto, até **2048 × 2048 pixels**. Não dependem de conta, chave de API ou downloads de fotografias de terceiros. Três.js e as fontes são distribuídos por CDN.
+- Texturas geradas localmente pela própria aplicação no navegador: solo, água, areia, concreto e asfalto, até **2048 × 2048 pixels** em computadores e até **1024 × 1024** em dispositivos móveis com ponteiro tátil, respeitando o limite da GPU. Não dependem de conta, chave de API ou downloads de fotografias de terceiros. Três.js e as fontes são distribuídos por CDN.
 - Física determinística em passo fixo, gravidade, densidade atmosférica, sustentação, arrasto, potência, ângulo de ataque, perda de sustentação, rolagem, arfagem, guinada, vento lateral, flaps, trem, colisão simplificada com o terreno e frenagem em solo. **O impulso de pontuação altera a aceleração somente no modo arcade**, sem ser apresentado como física aeronáutica real.
 - Instrumentos: velocidade em nós, altitude em pés, razão vertical, proa, manete, configuração e destino; minimapa e rumos.
 - Controles de teclado e toque; áudio opcional sintetizado localmente; resolução ajustável, pausa, reinício, decolagem da pista.
