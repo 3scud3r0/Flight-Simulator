@@ -1,0 +1,7 @@
+node_modules/
+vendor/
+assets/
+.browsers/
+.tmp/
+proof/*
+!proof/aurora-real.png

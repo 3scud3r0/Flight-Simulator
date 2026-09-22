@@ -4,9 +4,9 @@ import {
  AETHERIA_REGIONS,AETHERIA_AIRPORTS,AETHERIA_LANDMARKS,
  AETHERIA_SIZE,aetheriaRegionAt,aetheriaAirportById,
  aetheriaNearestAirport
-} from "../src/aetheria-data.js";
+} from "../src/legacy/aetheria-data.js";
 import {aetheriaBiome,sampleAetheriaHeight,aetheriaWeatherAt}
- from "../src/aetheria.js";
+ from "../src/legacy/aetheria.js";
 import {createCourse,createChallenge,RING_COUNT} from "../src/challenge.js";
 
 test("compact Aetheria has four actually designed destinations",()=>{

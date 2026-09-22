@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {createAetheriaWorld} from "../src/aetheria.js";
-import {AETHERIA_AIRPORTS} from "../src/aetheria-data.js";
+import {createAetheriaWorld} from "../src/legacy/aetheria.js";
+import {AETHERIA_AIRPORTS} from "../src/legacy/aetheria-data.js";
 
 class V3 {
  constructor(x=0,y=0,z=0){this.x=x;this.y=y;this.z=z}

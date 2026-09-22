@@ -1,14 +1,21 @@
-# Flight Simulator — Rio + Aetheria
+# Flight Simulator — Ilhas de Aurora
 
-**Dois mundos selecionáveis.** O Rio permanece separado. Aetheria foi reduzida radicalmente para **48 × 36 km**, com quatro áreas contínuas (Nova Íris, Auralis, Vértice e Virídia), quatro aeroportos AE-01 a AE-04, pistas niveladas, taxiways, pátios, modelos Kenney CC0 e solo/asfalto com texturas Poly Haven PBR. Não há mais 20 regiões ou 60 aeroportos fictícios apenas no seletor.
+**Aurora é o mundo principal.** Um arquipélago fictício original de 12 × 10 km com cinco ilhas, aeródromo costeiro AU-01, Vila da Enseada, Ponte dos Arcos, Farol do Leste e vegetação instanciada. Voo livre e a Trilha dos Marcos (14 argolas seguindo farol, ponte e vila) funcionam com a pilotagem refinada, câmeras, controles por teclado, toque e gamepad. A altura usada pelo avião e pela malha visual vem da mesma função determinística; a pista é nivelada em toda a extensão.
 
-**Abrir Aetheria:** https://3scud3r0.github.io/Flight-Simulator/?world=aetheria
+**Jogar:** https://3scud3r0.github.io/Flight-Simulator/?world=aurora (após a publicação da branch). **Localmente:** `python3 -m http.server 8000` e abra `http://localhost:8000/?world=aurora`. A biblioteca Three.js é fornecida pelo workflow de publicação; em desenvolvimento sem `vendor/`, o navegador tenta CDNs.
 
-**Abrir Rio:** https://3scud3r0.github.io/Flight-Simulator/
+Rio, Aetheria completa e Aetheria Lite seguem selecionáveis. Seus módulos de mapa ficam em `src/legacy/`, inclusive o renderizador Lite antes embutido no código principal. Os módulos de física, aeronaves, HUD e motor numérico continuam compartilhados.
 
-**Modo compatibilidade Aetheria:** https://3scud3r0.github.io/Flight-Simulator/?world=aetheria-lite&safe=1
+A opção **Pilotagem refinada** é padrão e usa controle amortecido, resposta conforme a velocidade, rotação na decolagem, efeito de solo, pouso e simulação em subpassos. O modelo experimental de seis graus de liberdade continua opcional. São aproximações lúdicas, sem certificação aeronáutica.
 
-O endereço do GitHub Pages só funcionará quando a implantação estiver ativa. Detalhes da rede, limitações e uso correto do motor de 180 algoritmos: [docs/AETHERIA.md](docs/AETHERIA.md).
+## Verificação
+
+- `npm run check`: sintaxe dos módulos.
+- `npm test`: suíte numérica e de integração.
+- `npm run proof:aurora`: navegador Chromium com WebGL real, valida carregamento e captura `proof/aurora-real.png`. Requer Playwright 1.55, Chromium e Three.js local em `vendor/` ou acesso ao CDN. O script abre e encerra seu próprio servidor local.
+- `npm run test:browser`: fluxo completo de Aurora, Rio e Aetheria no navegador, com capturas em `proof/`; o workflow de CI prepara bibliotecas e modelos CC0.
+
+**Limite visual:** Aurora usa geometria e materiais procedurais e ainda requer arte, áudio, animação, otimização de GPU e validação em dispositivos variados para alcançar padrão de produção triplo A. A imagem em `proof/aurora-real.png` é uma captura da implementação, não uma imagem conceitual.
 
 ---
 

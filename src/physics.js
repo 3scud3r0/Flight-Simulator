@@ -43,7 +43,8 @@ export function createFlight(aircraftId = "cessna", spawn = {}) {
     pitch: 0.035, roll: 0, speed: spawn.speed ?? aircraft.spawnSpeed,
     verticalSpeed: 0, throttle: 0.76, flaps: 0, gear: true,
     trim: 0, fuel: 1, damaged: false, onGround: false,
-    gLoad: 1, aoa: 0, stall: false, distance: 0
+    gLoad: 1, aoa: 0, stall: false, distance: 0,
+    pitchRate: 0, rollRate: 0
   };
 }
 
@@ -54,19 +55,42 @@ export function createFlight(aircraftId = "cessna", spawn = {}) {
  */
 export function stepFlight(state, input = {}, dt = 1 / 60, terrainElevation = 0) {
   if (!Number.isFinite(dt) || dt <= 0) return state;
+  // Keep all elapsed time, including an occasional slow frame, in stable substeps.
+  const steps = Math.ceil(dt * 30);
+  const h = dt / steps;
+  for (let i = 0; i < steps; i++) integrateFlight(state, input, h, terrainElevation);
+  return state;
+}
+
+function integrateFlight(state, input, h, terrainElevation) {
   const a = AIRCRAFT[state.aircraftId] || AIRCRAFT.cessna;
-  const h = clamp(dt, 0, 1 / 30);
   const elevator = clamp(input.elevator || 0, -1, 1);
   const aileron = clamp(input.aileron || 0, -1, 1);
   const rudder = clamp(input.rudder || 0, -1, 1);
   state.throttle = clamp(state.throttle + (input.throttleDelta || 0) * h, 0, 1);
   state.trim = clamp(state.trim + (input.trimDelta || 0) * h, -1, 1);
 
-  const authority = clamp(state.speed / Math.max(a.rotationSpeed, 1), 0.2, 1.4);
-  state.pitch = clamp(state.pitch + (elevator * 0.43 * authority +
-    state.trim * 0.075 - state.pitch * 0.055) * h, -0.37, 0.40);
-  state.roll = clamp(state.roll + (aileron * 0.92 * authority -
-    state.roll * 0.13) * h, -1.25, 1.25);
+  // Dynamic pressure weakens controls near stall; load increases at cruise speed.
+  const speedRatio = state.speed / Math.max(a.rotationSpeed, 1);
+  const authority = clamp(speedRatio * speedRatio, 0.05, 1) *
+    clamp(Math.sqrt(2 / Math.max(speedRatio, 1)), 0.6, 1) *
+    (state.stall ? 0.7 : 1);
+  const pitchTarget = elevator * 0.48 * authority + state.trim * 0.075 -
+    state.pitch * 0.22;
+  const rollTarget = aileron * 1.05 * authority - state.roll * 0.35;
+  state.pitchRate = (state.pitchRate || 0) +
+    (pitchTarget - (state.pitchRate || 0)) * (1 - Math.exp(-h / 0.28));
+  state.rollRate = (state.rollRate || 0) +
+    (rollTarget - (state.rollRate || 0)) * (1 - Math.exp(-h / 0.22));
+  // Ground effect of the controls: roll settles on the wheels, while the
+  // elevator starts rotating the nose only as takeoff speed approaches.
+  if (state.onGround) {
+    state.rollRate = 0;
+    state.roll *= Math.exp(-h * 3);
+    if (speedRatio < 0.72) state.pitchRate = Math.min(state.pitchRate, 0);
+  }
+  state.pitch = clamp(state.pitch + state.pitchRate * h, -0.37, 0.40);
+  state.roll = clamp(state.roll + state.rollRate * h, -1.25, 1.25);
 
   const rho = 1.225 * Math.exp(-Math.max(0, state.y) / 8500);
   const flightPathAngle = Math.atan2(state.verticalSpeed, Math.max(state.speed, 5));
@@ -79,14 +103,19 @@ export function stepFlight(state, input = {}, dt = 1 / 60, terrainElevation = 0)
 
   const q = 0.5 * rho * state.speed * state.speed;
   const lift = q * a.wingArea * cl;
+  // Near the runway the wingtip vortices weaken, reducing induced drag.
+  const groundEffect = clamp(1 - Math.max(0, state.y - terrainElevation) /
+    Math.max(a.wingspan, 1), 0, 1);
   const drag = q * a.wingArea * (
-    a.cd0 + a.induced * cl * cl + (state.gear ? 0.016 : 0) +
+    a.cd0 + a.induced * cl * cl * (1 - groundEffect * 0.25) +
+    (state.gear ? 0.016 : 0) +
     state.flaps * 0.055);
   const thrust = a.thrust * state.throttle * (state.fuel > 0 ? 1 : 0);
   const braking = input.brake && state.onGround ? a.mass * 3.3 : 0;
   // Only arcade challenge mode supplies boostAcceleration. Free flight stays unchanged.
   const arcadeBoost = clamp(Number(input.boostAcceleration) || 0, 0, 15);
-  const forwardAcceleration = (thrust - drag - braking) / a.mass -
+  const rollingResistance = state.onGround && state.speed > 0 ? 0.08 : 0;
+  const forwardAcceleration = (thrust - drag - braking) / a.mass - rollingResistance -
     9.81 * Math.sin(flightPathAngle) + (state.onGround ? 0 : arcadeBoost);
   state.speed = clamp(state.speed + forwardAcceleration * h, 0,
     arcadeBoost > 0 ? a.maxSpeed * 1.65 :
@@ -106,13 +135,17 @@ export function stepFlight(state, input = {}, dt = 1 / 60, terrainElevation = 0)
     state.onGround = true;
     state.roll *= Math.max(0, 1 - h * 2);
     state.pitch *= Math.max(0, 1 - h * 0.7);
+    if (speedRatio < 0.72) state.pitchRate = Math.min(0, state.pitchRate);
+    state.rollRate = 0;
   } else {
     state.y += state.verticalSpeed * h;
     if (state.y < floor) {
-      if (state.verticalSpeed < -7 || !state.gear) state.damaged = true;
+      if (state.verticalSpeed < -7 || (!state.gear && state.speed > 15)) state.damaged = true;
       state.y = floor;
       state.verticalSpeed = 0;
       state.onGround = true;
+      if (speedRatio < 0.72) state.pitchRate = Math.min(0, state.pitchRate);
+      state.rollRate = 0;
     } else {
       state.onGround = false;
     }
@@ -120,14 +153,15 @@ export function stepFlight(state, input = {}, dt = 1 / 60, terrainElevation = 0)
 
   const turnRate = state.onGround
     ? rudder * clamp(state.speed / 18, 0, 1) * 0.28
-    : 9.81 * Math.tan(state.roll) / Math.max(state.speed, 22) + rudder * 0.1;
+    : 9.81 * Math.tan(state.roll) / Math.max(state.speed, 22) +
+      rudder * 0.1 * authority;
   state.heading = normalizeHeading(state.heading + turnRate * h);
   const horizontalSpeed = Math.sqrt(Math.max(0,
     state.speed * state.speed - state.verticalSpeed * state.verticalSpeed));
   const windX = Number(input.windX) || 0;
   const windZ = Number(input.windZ) || 0;
-  state.x += (Math.sin(state.heading) * horizontalSpeed + windX) * h;
-  state.z -= (Math.cos(state.heading) * horizontalSpeed - windZ) * h;
+  state.x += (Math.sin(state.heading) * horizontalSpeed + (state.onGround ? 0 : windX)) * h;
+  state.z -= (Math.cos(state.heading) * horizontalSpeed - (state.onGround ? 0 : windZ)) * h;
   state.distance += horizontalSpeed * h;
   state.fuel = clamp(state.fuel - state.throttle * h / 36000, 0, 1);
   return state;

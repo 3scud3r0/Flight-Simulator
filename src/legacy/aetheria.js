@@ -11,10 +11,10 @@ import {
 // Import ONLY the numerical kernels used by this world. Importing
 // engine/index.js pulled all 180 kernels and their transitive dependencies
 // through one delayed network request, causing an avoidable load failure.
-import * as Generation from "./engine/generation.js";
-import * as Weather from "./engine/weather.js";
-import * as Infrastructure from "./engine/infrastructure.js";
-import {createAssetLibrary} from "./asset-library.js";
+import * as Generation from "../engine/generation.js";
+import * as Weather from "../engine/weather.js";
+import * as Infrastructure from "../engine/infrastructure.js";
+import {createAssetLibrary} from "../asset-library.js";
 
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
 const mix=(a,b,t)=>a+(b-a)*t;
@@ -182,7 +182,7 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
    ["sand","aerial_beach_01_diff_1k.png"],
    ["rock","rocks_ground_06_diff_1k.png"],
    ["asphalt","aerial_asphalt_01_diff_1k.png"]])
-    texLoader.load(new URL("../assets/pbr/"+file,import.meta.url).href,
+    texLoader.load(new URL("../../assets/pbr/"+file,import.meta.url).href,
      texture=>{
       if(!active){texture.dispose();return}
       texture.colorSpace=THREE.SRGBColorSpace;
@@ -203,7 +203,7 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
    ["earth","gravel_ground_01_nor_gl_1k.png"],
    ["rock","rocks_ground_06_nor_gl_1k.png"],
    ["asphalt","aerial_asphalt_01_nor_gl_1k.png"]])
-    texLoader.load(new URL("../assets/pbr/"+file,import.meta.url).href,
+    texLoader.load(new URL("../../assets/pbr/"+file,import.meta.url).href,
      texture=>{
       if(!active){texture.dispose();return}
       texture.wrapS=texture.wrapT=THREE.RepeatWrapping;

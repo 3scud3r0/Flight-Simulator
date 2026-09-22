@@ -4,7 +4,7 @@ import {KENNEY_COMMIT,KENNEY_FILES,KENNEY_MODELS,
  POLY_HAVEN_MATERIALS} from "../src/asset-manifest.js";
 import {planAirportAssets} from "../src/asset-library.js";
 import {AETHERIA_REGIONS,AETHERIA_AIRPORTS}
- from "../src/aetheria-data.js";
+ from "../src/legacy/aetheria-data.js";
 test("50 SHA-pinned imported original CC0 glTF models",()=>{
  assert.equal(KENNEY_MODELS.length,50);
  assert.equal(new Set(KENNEY_MODELS).size,50);

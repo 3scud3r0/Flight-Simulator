@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#06111f">
-  <meta name="description" content="Flight Simulator: escolha o Rio de Janeiro ou Aetheria, com quatro regiões próximas e quatro aeroportos bem construídos. Duas opções de desempenho.">
-  <title>FLIGHT SIMULATOR — Rio de Janeiro &amp; Aetheria</title>
+  <meta name="description" content="Flight Simulator: explore as Ilhas de Aurora, um arquipélago compacto com voo livre e desafio aéreo. Rio e Aetheria preservados no legado.">
+  <title>FLIGHT SIMULATOR — Ilhas de Aurora</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="stylesheet" href="./styles.css">
 </head>
@@ -15,7 +15,7 @@
   <header class="topbar">
     <a href="./" class="brand" aria-label="Flight Simulator — início">
       <span class="brand-icon">✦</span>
-      <span><strong>FLIGHT<span class="brand-light"> SIMULATOR</span></strong><small>RIO DE JANEIRO · AETHERIA</small></span>
+      <span><strong>FLIGHT<span class="brand-light"> SIMULATOR</span></strong><small>ILHAS DE AURORA</small></span>
     </a>
     <div class="top-center"><span class="live-dot"></span><span id="flight-status">PRONTO PARA VOAR</span><span class="top-divider">/</span><span id="fps">-- FPS</span></div>
     <div class="top-actions">
@@ -31,11 +31,12 @@
     <div class="panel-heading"><span>FLIGHT SIMULATOR</span><span class="subtle">PAINEL DE VOO</span></div>
     <label for="world-select">MUNDO / MAPA</label>
     <select id="world-select">
+      <option value="aurora" selected>Ilhas de Aurora · nova experiência</option>
       <option value="rio">Rio de Janeiro · cenário original</option>
       <option value="aetheria">Aetheria completa · máxima qualidade</option>
       <option value="aetheria-lite">Aetheria leve · máxima compatibilidade</option>
     </select>
-    <div id="world-info" role="status" aria-live="polite" class="world-info">Rio de Janeiro · 3 aeroportos · relevo opcional</div>
+    <div id="world-info" role="status" aria-live="polite" class="world-info">Ilhas de Aurora · 12 × 10 km · 5 marcos</div>
     <div id="aetheria-controls" hidden>
       <label for="aetheria-region">REGIÃO DE AETHERIA · IR ATÉ</label>
       <select id="aetheria-region" aria-label="Região do cenário compacto">
@@ -73,8 +74,8 @@
     </select>
     <label for="flight-model">MODELO DE VOO</label>
     <select id="flight-model">
+      <option value="classic" selected>Pilotagem refinada · recomendada</option>
       <option value="rigid">6 graus de liberdade · experimental</option>
-      <option value="classic">Clássico · leve</option>
     </select>
     <label for="airport">AEROPORTO DE REFERÊNCIA</label>
     <select id="airport">
@@ -123,7 +124,7 @@
   </aside>
 
   <aside id="map-panel" class="panel map-panel" aria-label="Mapa de navegação">
-    <div class="map-heading"><span>MAPA TÁTICO <em id="map-world-label">· RIO DE JANEIRO</em></span><span id="map-bearing">N ↑</span></div>
+    <div class="map-heading"><span>MAPA TÁTICO <em id="map-world-label">· ILHAS DE AURORA</em></span><span id="map-bearing">N ↑</span></div>
     <canvas id="map" width="320" height="320" aria-label="Mapa da região, aeroportos e aeronave"></canvas>
     <div class="map-legend"><span><i class="legend-plane"></i> SUA POSIÇÃO</span><span><i class="legend-airport"></i> AEROPORTO</span></div>
   </aside>
@@ -157,37 +158,44 @@
       <div class="welcome-overline"><span class="live-dot"></span> SEU MUNDO. SUA AERONAVE. SEU VOO.</div>
       <div class="welcome-symbol">✦ <span>FLIGHT / SIMULATOR</span> ✦</div>
       <h1 id="welcome-title">FLIGHT SIMULATOR</h1>
-      <p class="welcome-tagline">DO RIO A UM NOVO LUGAR PARA VOAR.</p>
-      <p id="welcome-desc">Escolha o cenário e o desempenho antes de decolar. Explore o Rio original ou atravesse Aetheria: quatro regiões próximas e quatro aeroportos em um cenário compacto de 48 × 36 km.</p>
+      <p class="welcome-tagline">UM PEQUENO MUNDO. UM HORIZONTE INTEIRO.</p>
+      <p id="welcome-desc">Explore as Ilhas de Aurora: 12 × 10 km de enseadas, recifes, farol, montanhas e vilarejos. Decole do aeródromo costeiro, siga os marcos e domine o desafio aéreo.</p>
       <label for="welcome-world" class="world-welcome-label">01 / SELECIONE SEU MUNDO</label>
       <select id="welcome-world" class="world-welcome-select">
+        <option value="aurora" selected>ILHAS DE AURORA · NOVA EXPERIÊNCIA</option>
         <option value="rio">RIO DE JANEIRO · CENÁRIO ORIGINAL</option>
         <option value="aetheria">AETHERIA COMPLETA · MÁXIMA QUALIDADE</option>
         <option value="aetheria-lite">AETHERIA LEVE · COMPATIBILIDADE</option>
       </select>
       <div class="world-cards" role="group" aria-label="Seleção visual do mundo">
-        <button type="button" class="world-choice is-active" data-world="rio" aria-pressed="true">
+        <button type="button" class="world-choice is-active" data-world="aurora" aria-pressed="true">
+          <span class="world-choice-art aurora-art" aria-hidden="true"><span>✦</span></span>
+          <span class="world-choice-copy"><strong>ILHAS DE AURORA</strong>
+            <small>12 × 10 km · recifes, farol e pista costeira</small>
+            <em>01 / NOVO MUNDO</em></span>
+        </button>
+        <button type="button" class="world-choice" data-world="rio" aria-pressed="false">
           <span class="world-choice-art rio-art" aria-hidden="true"><span>RIO</span></span>
           <span class="world-choice-copy"><strong>RIO DE JANEIRO</strong>
             <small>O cenário original · 3 aeroportos · relevo opcional</small>
-            <em>01 / ORIGINAL</em></span>
+            <em>02 / LEGADO</em></span>
         </button>
         <button type="button" class="world-choice" data-world="aetheria" aria-pressed="false">
           <span class="world-choice-art aetheria-art" aria-hidden="true"><span>Æ</span></span>
           <span class="world-choice-copy"><strong>AETHERIA COMPLETA</strong>
             <small>48 × 36 km · 4 aeroportos · modelos 3D e materiais PBR</small>
-            <em>02 / MÁXIMA QUALIDADE</em></span>
+            <em>03 / LEGADO</em></span>
         </button>
         <button type="button" class="world-choice" data-world="aetheria-lite" aria-pressed="false">
           <span class="world-choice-art lite-art" aria-hidden="true"><span>◈</span></span>
           <span class="world-choice-copy"><strong>AETHERIA LEVE</strong>
             <small>O mesmo cenário compacto · 4 aeroportos · inicialização protegida</small>
-            <em>03 / MODO LEVE</em></span>
+            <em>04 / MODO LEVE</em></span>
         </button>
       </div>
       <div id="welcome-features" class="welcome-features">
-        <span>◈ 3 AERONAVES</span><span>◈ 2 MUNDOS</span>
-        <span>◈ HUD OCULTÁVEL</span>
+        <span>◈ 3 AERONAVES</span><span>◈ 12 × 10 KM</span>
+        <span>◈ 5 MARCOS</span>
       </div>
       <div class="welcome-actions">
         <button id="start" class="button-primary hero-button" type="button">INICIAR VOO LIVRE ↗</button>

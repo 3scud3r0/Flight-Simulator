@@ -1,4 +1,4 @@
-import { rad, clamp } from "./physics.js";
+import { rad, clamp } from "../physics.js";
 
 export const ORIGIN = Object.freeze({ lat: -22.930, lon: -43.210 });
 export const AIRPORTS = Object.freeze([
