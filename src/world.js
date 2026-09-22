@@ -205,8 +205,8 @@ export function createWorld(THREE, scene, renderer) {
   }
   for (const airport of AIRPORTS) {
     const p = geo(airport.lat, airport.lon), y = airport.elevation;
-    pad(p.x, p.z, airport.id === "SBGL" ? 4700 : airport.id === "SBRJ" ? 1750 : 1150,
-      airport.id === "SBGL" ? 4300 : airport.id === "SBRJ" ? 610 : 490,
+    pad(p.x, p.z, airport.id === "SBGL" ? 4700 : airport.id === "SBRJ" ? 610 : 490,
+      airport.id === "SBGL" ? 4300 : airport.id === "SBRJ" ? 1750 : 1150,
       y, apronMat, rad(airport.heading));
     for (const rw of airport.runways) {
       const theta = rad(rw.heading);
