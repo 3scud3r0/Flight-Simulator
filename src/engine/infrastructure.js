@@ -1,7 +1,8 @@
 /** Algorithms 143–154: optional procedural infrastructure and AI planning. */
 import {clamp,lerp,vec,add,sub,mul,norm,hash,rng} from "./math.js";
 export function proceduralRoadNetwork(points){
- if(points.length<2)return [];const connected=new Set([0]),edges=[];
+ if(points.length<2)return [];
+ if(points.length>20000)throw RangeError("Road graph budget exceeded");const connected=new Set([0]),edges=[];
  while(connected.size<points.length){let candidate=null,shortest=Infinity;
  for(const i of connected)for(let j=0;j<points.length;j++){if(connected.has(j))continue;
  const a=points[i],b=points[j],cost=Math.hypot(a.x-b.x,a.z-b.z);
@@ -32,6 +33,7 @@ export function airportLayout(center,heading,runways){
  z:center.z+right.z*shift-f.z*r.length/2}}});
 }
 export function proceduralRunwayMarkings(length,width,interval=60){
+ if(!(length>0&&width>0&&interval>0))throw RangeError("Invalid runway");
  const marks=[];for(let d=-length/2+50;d<length/2-50;d+=interval)
  marks.push({type:"centerline",distance:d,width:1.4,length:Math.min(32,interval*.6)});
  for(const side of [-1,1])marks.push({
@@ -39,6 +41,8 @@ export function proceduralRunwayMarkings(length,width,interval=60){
  return marks;
 }
 export function aerodromeLights(runway,{spacing=80,thresholdCount=10}={}){
+ if(!(runway.length>0&&runway.width>0&&spacing>0))throw RangeError("Invalid runway lighting");
+ thresholdCount=Math.min(128,Math.max(2,Math.floor(thresholdCount)));
  const lights=[];for(let d=-runway.length/2;d<=runway.length/2;d+=spacing)
  for(const side of [-1,1])lights.push({along:d,across:side*runway.width/2,
  color:"white",kind:"edge"});
@@ -56,7 +60,8 @@ export function vegetationDistribution(bounds,density,accept,seed=1,maxCandidate
  return result;
 }
 export function aggregateGroundTraffic(links,vehicleCount,dt,speed=12){
- return [...Array(vehicleCount)].map((_,i)=>{const road=links[i%links.length];
+ if(!links.length)return [];
+ return [...Array(Math.min(50000,Math.max(0,Math.floor(vehicleCount))))].map((_,i)=>{const road=links[i%links.length];
  if(!road)return null;const t=((i*.61803398+dt*speed/Math.max(1,road.length))%1+1)%1;
  return {road:i%links.length,t}}).filter(Boolean);
 }
@@ -84,6 +89,7 @@ export function fictionalATC(aircraft,traffic,runway){
  "Autorizado para decolar da pista "+runway.id};
 }
 export function obstacleAvoidingPath(nodes,start,goal,edges,heuristic){
+ if(nodes.length>100000)throw RangeError("Route graph budget exceeded");
  const open=[start],g=new Map([[start,0]]),prev=new Map(),closed=new Set();
  while(open.length){open.sort((a,b)=>
  (g.get(a)||0)+heuristic(a,goal)-(g.get(b)||0)-heuristic(b,goal));
