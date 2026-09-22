@@ -34,7 +34,10 @@ export function screenSpaceError(geometricError,distance,fovY,viewportHeight){
  return geometricError*viewportHeight/
  (2*Math.max(.01,distance)*Math.tan(fovY*.5));
 }
-export function geomorph(coarse,fine,t){return coarse.map((v,i)=>v+(fine[i]-v)*clamp(t))}
+export function geomorph(coarse,fine,t){
+ if(coarse.length!==fine.length)throw RangeError("LOD buffers must match");
+ return coarse.map((v,i)=>v+(fine[i]-v)*clamp(t))
+}
 export function stitchTileSkirt(vertices,boundary,drop=5){
  const verts=vertices.map(p=>({...p})),faces=[];
  for(const i of boundary)verts.push({...vertices[i],y:vertices[i].y-drop});
@@ -51,6 +54,8 @@ export function occlusionCull(occluders,target){
  o.top<=target.top&&o.bottom>=target.bottom);
 }
 export function hierarchicalZBuffer(depth,width,height,levels=Infinity){
+ if(!Number.isInteger(width)||!Number.isInteger(height)||width<1||height<1||
+ width*height!==depth.length||depth.length>16000000)throw RangeError("Invalid depth map");
  const chain=[{data:new Float32Array(depth),width,height}];
  while(width>1||height>1){if(chain.length>=levels)break;
  const w=Math.ceil(width/2),h=Math.ceil(height/2),next=new Float32Array(w*h);
@@ -61,8 +66,12 @@ export function hierarchicalZBuffer(depth,width,height,levels=Infinity){
  chain.push({data:next,width:w,height:h});depth=next;width=w;height=h;}return chain;
 }
 export function packInstances(transforms){
+ if(transforms.length>100000)throw RangeError("Instance budget exceeded");
  const data=new Float32Array(transforms.length*16);
- for(let i=0;i<transforms.length;i++)data.set(transforms[i],i*16);
+ for(let i=0;i<transforms.length;i++){
+ if(transforms[i].length!==16)throw RangeError("Expected 4x4 transform");
+ data.set(transforms[i],i*16);
+ }
  return {matrices:data,count:transforms.length,stride:16};
 }
 export function indirectDrawCommands(groups){
@@ -74,13 +83,14 @@ export function indirectDrawCommands(groups){
 export function spatialStreamQueue(position,tiles,max=16){
  return tiles.map(tile=>({...tile,
  priority:Math.hypot(tile.x-position.x,tile.z-position.z)}))
- .sort((a,b)=>a.priority-b.priority).slice(0,max);
+ .sort((a,b)=>a.priority-b.priority).slice(0,Math.max(0,Math.floor(max)));
 }
 export function predictivePrefetch(position,velocity,tiles,{seconds=8,max=16}={}){
  const ahead=add(position,mul(velocity,seconds));
  return spatialStreamQueue(ahead,tiles,max);
 }
 export function memoryBudget(resources,maxBytes){
+ maxBytes=Math.max(0,maxBytes);
  const kept=new Set(resources.map(r=>r.id)),evict=[];
  let bytes=resources.reduce((s,r)=>s+r.bytes,0);
  for(const r of [...resources].sort((a,b)=>(a.priority||0)-(b.priority||0))){
