@@ -44,10 +44,10 @@ export function planAirportAssets(airport,region,{mobile=false}={}){
   /4294967296);
  const items=[],urban=URBAN.has(region.biome)||
   airport.category==="internacional";
- const full=!mobile,cityCount=urban?(full?26:9):0;
+ const full=!mobile,cityCount=urban?(full?64:12):0;
  const treeCount=TREE_BIOMES.has(region.biome)?
-  full?52:12:full?8:3;
- const rockCount=full?19:6;
+  full?100:24:full?18:4;
+ const rockCount=full?34:8;
  const heading=airport.heading*Math.PI/180;
  const forward={x:Math.sin(heading),z:-Math.cos(heading)};
  const right={x:Math.cos(heading),z:Math.sin(heading)};
@@ -67,17 +67,17 @@ export function planAirportAssets(airport,region,{mobile=false}={}){
     width:width*(.82+random()*.5)});
   }
  }
- append(CHOICES.hangars,mobile?2:4,450,1000,24,48);
+ append(CHOICES.hangars,mobile?3:7,450,1000,24,48);
  if(urban)append(region.biome==="industrial"?CHOICES.industrial:
   region.biome==="historic"?CHOICES.suburban:CHOICES.city,
-  cityCount,1050,full?3700:2450,region.biome==="megacity"?
+  cityCount,1050,full?3600:2200,region.biome==="megacity"?
     150:region.biome==="futuristic"?160:43,45);
  if(treeCount)append(region.biome==="tropical"?
   [CHOICES.trees[5],CHOICES.trees[0]]:region.biome==="alpine"||
   region.biome==="polar"?[CHOICES.trees[3],CHOICES.trees[4]]:
   CHOICES.trees,treeCount,900,full?3600:2500,18,13);
  append(CHOICES.rocks,rockCount,750,full?3100:1950,14,20);
- append(CHOICES.detail,full?12:3,250,850,7,4);
+ append(CHOICES.detail,full?24:5,250,850,7,4);
  return items.slice(0,SLICE_MAX);
 }
 export function createAssetLibrary(THREE,worldRoot,sampleHeight,{mobile=false}={}){
