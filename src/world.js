@@ -208,6 +208,7 @@ export function createWorld(THREE, scene, renderer) {
     mesh.position.set(x, y, z); mesh.receiveShadow = true;
     scene.add(mesh); return mesh;
   }
+  const runwayLampPositions = [];
   for (const airport of AIRPORTS) {
     const p = geo(airport.lat, airport.lon), y = airport.elevation;
     pad(p.x, p.z, airport.id === "SBGL" ? 4700 : airport.id === "SBRJ" ? 610 : 490,
@@ -225,6 +226,18 @@ export function createWorld(THREE, scene, renderer) {
           rz - Math.cos(theta) * along, 1.5, 35, y + .20, lineWhite, theta);
         dash.renderOrder = 2;
       }
+      // Sample paired runway edge and threshold lights (illustrative layout).
+      for (let j = -rw.length / 2; j <= rw.length / 2; j += 92) {
+        for (const side of [-1, 1]) {
+          runwayLampPositions.push({
+            x: rx + Math.sin(theta) * j +
+              perpendicular.x * (rw.width / 2 + 2) * side,
+            y: y + .72,
+            z: rz - Math.cos(theta) * j +
+              perpendicular.z * (rw.width / 2 + 2) * side
+          });
+        }
+      }
       for (const end of [-1, 1]) {
         for (let i = -2; i <= 2; i++) {
           const along = end * (rw.length / 2 - 40);
@@ -241,6 +254,24 @@ export function createWorld(THREE, scene, renderer) {
       pad(tx, tz, 2, 90, y + .19, lineYellow, rad(airport.heading));
     }
   }
+
+  const runwayGlow = new THREE.MeshBasicMaterial({
+    color: 0xe9f7ff,transparent:true,opacity:.02,depthWrite:false,
+    toneMapped:false
+  });
+  const lamps = new THREE.InstancedMesh(
+    new THREE.SphereGeometry(.92,6,4),runwayGlow,
+    runwayLampPositions.length
+  );
+  const lampDummy = new THREE.Object3D();
+  runwayLampPositions.forEach((p,i)=>{
+    lampDummy.position.set(p.x,p.y,p.z);
+    lampDummy.scale.setScalar(1); lampDummy.updateMatrix();
+    lamps.setMatrixAt(i,lampDummy.matrix);
+  });
+  lamps.instanceMatrix.needsUpdate=true;
+  lamps.frustumCulled=false;
+  scene.add(lamps);
 
   // Approximate sand along the southern coastline, generated as a textured ribbon.
   const beachPositions = [], beachUVs = [], beachIndices = [];
@@ -369,6 +400,7 @@ export function createWorld(THREE, scene, renderer) {
     scene.fog.density = weather === "névoa" ? .00016 :
       weather === "nublado" ? .000055 : .000021;
     cloudMat.opacity = weather === "nublado" ? .97 : .78;
+    runwayGlow.opacity = day < .20 ? .96 : .02;
     water.offset.x = (water.offset.x + dt * .00045) % 1;
     water.offset.y = (water.offset.y + dt * .00016) % 1;
     renderer.toneMappingExposure = .35 + day * .95;
@@ -386,5 +418,5 @@ export function createWorld(THREE, scene, renderer) {
     }
   }
   return { sampleHeight, updateEnvironment, airports: AIRPORTS,
-    landmarks: LANDMARKS, sun, cloudMat, sea, setRealTerrainEnabled };
+    landmarks: LANDMARKS, sun, cloudMat, sea, runwayGlow, setRealTerrainEnabled };
 }
