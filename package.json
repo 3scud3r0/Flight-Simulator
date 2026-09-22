@@ -1,12 +1,12 @@
 {
   "name": "rio-flight",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "type": "module",
   "description": "Simulador de voo educativo 3D do Rio de Janeiro para navegadores",
   "scripts": {
     "test": "node --test",
-    "check": "node --check src/physics.js && node --check src/world.js && node --check src/challenge.js && node --check src/gamepad.js && node --check src/course-renderer.js && node --check src/atmosphere.js && node --check src/real-terrain.js && node --check src/sky.js && node --check src/six-dof.js && node --check src/aircraft-model.js && node --check src/main.js"
+    "check": "node --check src/bootstrap.js && node --check src/main.js && node --check src/world.js && node --check src/real-terrain.js && node --check src/physics.js && node --check src/atmosphere.js && node --check src/six-dof.js && node --check src/aircraft-model.js && node --check src/sky.js && node --check src/ocean.js && node --check src/challenge.js && node --check src/course-renderer.js && node --check src/gamepad.js"
   },
   "engines": {
     "node": ">=20"
