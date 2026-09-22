@@ -496,7 +496,7 @@ function createOfflineAetheriaWorld(THREE,scene,renderer,{mobile=false,
  const root=new THREE.Group();
  root.name="Aetheria_Offline_Lite";
  scene.add(root);
- const tileSize=6000,radius=1,steps=mobile?10:14;
+ const tileSize=2400,radius=1,steps=mobile?16:22;
  const tiles=new Map(),materials=new Set();
  const groundMaterial=new THREE.MeshStandardMaterial({
   color:0xffffff,vertexColors:true,roughness:.95,
@@ -527,9 +527,9 @@ function createOfflineAetheriaWorld(THREE,scene,renderer,{mobile=false,
  };
  const baseHeight=(x,z)=>{
   const region=aetheriaRegionAt(x,z);
-  const rolling=95*Math.sin(x*.000016+region.seed)*
+  const rolling=60*Math.sin(x*.000046+region.seed)*
    Math.cos(z*.000017-region.seed);
-  const ridges=95*Math.abs(Math.sin(x*.000067)*
+  const ridges=90*Math.abs(Math.sin(x*.000097)*
    Math.cos(z*.000052));
   const alpine=["alpine","glacial","fjord"].includes(region.biome);
   const wet=["ocean","tropical"].includes(region.biome);
@@ -700,7 +700,7 @@ async function changeWorld(next) {
   for(const card of document.querySelectorAll(".world-choice"))
     card.disabled=true;
   $("world-info").textContent=isAetheria?
-    "Preparando 20 regiões e 60 aeroportos fictícios…":
+    "Preparando quatro regiões e quatro aeroportos detalhados…":
     "Reabrindo o Rio de Janeiro…";
   const priorPause=paused;
   paused=true;accumulator=0;
@@ -761,7 +761,7 @@ async function changeWorld(next) {
       scene.background=new THREE.Color(0x94c4d7);
       $("map-world-label").textContent="· AETHERIA";
       $("world-info").textContent=
-        "Aetheria · 20 regiões · 60 aeroportos · "+
+        "Aetheria · 4 regiões · 4 aeroportos · "+
         (usedFallback?"modo leve de recuperação":
         next==="aetheria-lite"||SAFE_MODE?"modo leve":"qualidade máxima");
     }
@@ -775,10 +775,10 @@ async function changeWorld(next) {
     $("welcome-title").textContent="FLIGHT SIMULATOR";
     $("welcome-desc").textContent=next==="rio"?
       "Decole sobre a Baía de Guanabara, contorne o Pão de Açúcar e descubra o Rio de Janeiro em um simulador 3D feito para o navegador.":
-      "Um mundo ficcional contínuo: 20 regiões interligadas, 60 aeroportos, cordilheiras, ilhas, megacidades, vulcões e geleiras. Sem downloads de satélite.";
+      "Um cenário compacto de 48 × 36 km: uma capital costeira, ilhas tropicais, montanhas e selva. Quatro aeroportos para explorar com detalhes — não dezenas de pistas vazias.";
     $("welcome-features").innerHTML=next==="rio"?
       "<span>◈ 3 AERONAVES</span><span>◈ 3 AEROPORTOS</span><span>◈ VOO LIVRE + DESAFIO</span>":
-      "<span>◈ 20 REGIÕES</span><span>◈ 60 AEROPORTOS</span><span>◈ VOO LIVRE + DESAFIO</span>";
+      "<span>◈ 48 × 36 KM</span><span>◈ 4 AEROPORTOS</span><span>◈ VOO LIVRE + DESAFIO</span>";
     if(!SAFE_MODE){
       try{
         sky=createSky(THREE,scene,world,renderer,
@@ -1232,7 +1232,7 @@ function animate(now) {
     drawMap();
     if(activeWorld==="aetheria")
       $("world-info").textContent=world.status+
-        " · 60 aeroportos · "+world.tileCount+"/"+world.tileLimit+" blocos";
+        " · "+AETHERIA_AIRPORTS.length+" aeroportos · "+world.tileCount+"/"+world.tileLimit+" blocos";
     $("touch-throttle").value = Math.round(flight.throttle * 100);
   }
   updateAudio();
