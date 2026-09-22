@@ -7,10 +7,10 @@
 export const AETHERIA_SIZE=Object.freeze({width:3200000,height:2400000});
 const raw=[
  // 5 columns x 4 rows; 20 contiguous climate/visual domains.
- ["borealis","Borealis","polar",-1280000,-900000,410,0xacc3cd,0x48647a,18],
- ["skadia","Skadia","glacial",-640000,-900000,680,0xd9e7e8,0x7293a8,26],
- ["nordalen","Nørdalen","fjord",0,-900000,940,0x71969a,0x274e60,15],
- ["vertice","Vértice","alpine",640000,-900000,1900,0x9eaab2,0x34455b,12],
+ ["borealis","Borealis","polar",-1280000,-900000,410,0xacc3cd,0x48647a,-16],
+ ["skadia","Skadia","glacial",-640000,-900000,680,0xd9e7e8,0x7293a8,-13],
+ ["nordalen","Nørdalen","fjord",0,-900000,940,0x71969a,0x274e60,1],
+ ["vertice","Vértice","alpine",640000,-900000,1900,0x9eaab2,0x34455b,-5],
  ["luminia","Lúmina","meadow",1280000,-900000,260,0xa2aa77,0x5d834b,10],
  ["viridia","Virídia","jungle",-1280000,-300000,340,0x286947,0x123d37,15],
  ["miragem","Miragem","delta",-640000,-300000,55,0x628e62,0x356c69,8],
@@ -22,7 +22,7 @@ const raw=[
  ["tempestaria","Tempestária","storm",0,300000,90,0x486c83,0x234558,7],
  ["ferrum","Ferrum","industrial",640000,300000,100,0x7e8a89,0x405760,8],
  ["neon-prime","Neon Prime","futuristic",1280000,300000,230,0x7067a5,0x3f336d,12],
- ["sahr","Sahr","desert",-1280000,900000,530,0xd2a66e,0x9b694d,7],
+ ["sahr","Sahr","desert",-1280000,900000,530,0xd2a66e,0x9b694d,37],
  ["helion","Helion","canyon",-640000,900000,1120,0xa05c42,0x6f3f39,14],
  ["obsidiana","Obsidiana","volcanic",0,900000,410,0x4e4446,0x513839,8],
  ["kharon","Kharon","volcano",640000,900000,900,0x614a45,0x613e34,12],
