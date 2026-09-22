@@ -4,6 +4,7 @@
  * always produce the same placement on all devices and after tile eviction.
  */
 import {AETHERIA_AIRPORTS,aetheriaRegionAt} from "./aetheria-data.js";
+import {planUrbanGridTile} from "./urban-grid.js";
 
 export const SCENERY_CELL = 2400;
 const CITY_X = -11700, CITY_Z = -8600;
@@ -48,6 +49,11 @@ export function planSceneryTile(ix,iz,{
  const startX=ix*SCENERY_CELL,startZ=iz*SCENERY_CELL;
  const buildings=[],trees=[],rocks=[];
  if(compatibility)return {buildings,trees,rocks};
+ const {roads,lamps}=planUrbanGridTile(ix,iz,{
+  sampleHeight,regionAt,clearance:(x,z)=>
+   Math.abs(x)<24000&&Math.abs(z)<18000&&
+   isAirportClear(x,z,airports),mobile
+ });
  const inWorld=(x,z)=>Math.abs(x)<24000&&Math.abs(z)<18000;
  const heightAt=(x,z)=>{
   const y=sampleHeight(x,z);
@@ -124,5 +130,5 @@ export function planSceneryTile(ix,iz,{
    rocks.push({x,y,z,size,tint:biome==="alpine"?0x777b79:0x5d7163});
   }
  }
- return {buildings,trees,rocks};
+ return {buildings,trees,rocks,roads,lamps};
 }
