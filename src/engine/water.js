@@ -3,7 +3,7 @@ import {clamp,lerp,vec,norm,dot} from "./math.js";
 export function gerstnerWaves(x,z,t,waves){
  let out=vec(x,0,z),dx=0,dz=0;
  for(const w of waves){const d=norm({x:w.dx||0,y:0,z:w.dz||1});
- const k=2*Math.PI/Math.max(.01,w.wavelength),phase=k*(d.x*x+d.z*z)-(w.speed||1)*t;
+ const k=2*Math.PI/Math.max(.01,w.wavelength),phase=k*(d.x*x+d.z*z)-1*(w.speed||1)*t;
  const amp=w.amplitude||0,q=clamp(w.steepness??.6,0,1);
  out.x+=q*amp*d.x*Math.cos(phase);out.y+=amp*Math.sin(phase);
  out.z+=q*amp*d.z*Math.cos(phase);
@@ -58,7 +58,7 @@ export function shoalingWaves(deepAmplitude,deepSpeed,depth){
 }
 export function wakeField(x,z,time,{speed=20,width=12,amplitude=.9}={}){
  const behind=Math.max(0,-z+time*speed),spread=width+.13*behind;
- return amplitude*Math.exp(-(x/spread)**2)*Math.sin(behind*.36-time*1.2)*
+ return amplitude*Math.exp(-1*(x/spread)**2)*Math.sin(behind*.36-time*1.2)*
  clamp(behind/10)*Math.exp(-behind/450);
 }
 export function riverFlowField(pos,riverPath,speed=2){
