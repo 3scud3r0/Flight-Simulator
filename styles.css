@@ -223,3 +223,93 @@ kbd{padding:4px 7px;min-width:23px;text-align:center;background:#1a3549;color:#a
  .world-welcome-select{padding:10px;font-size:11px}
  .world-info{font-size:10px;padding:7px}
 }
+
+/* Flight Simulator v0.5.1 — world selection, premium full vs lite. */
+.brand strong{font-size:clamp(18px,2.1vw,26px);letter-spacing:.08em}
+.brand small{letter-spacing:.15em}
+.hud-toggle{font-size:21px}
+.world-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+ gap:12px;margin:16px 0 12px}
+.world-choice{display:flex;flex-direction:column;min-width:0;padding:0;
+ overflow:hidden;text-align:left;border:1px solid #36516b;
+ border-radius:13px;background:#071828;color:#f3f9fc;cursor:pointer;
+ transition:transform .18s,border-color .18s,box-shadow .18s;
+ box-shadow:0 11px 25px #0005}
+.world-choice:hover{transform:translateY(-4px);border-color:#83e1ec}
+.world-choice:focus-visible{outline:2px solid #aaf4ee;outline-offset:3px}
+.world-choice.is-active{border-color:#75efe3;
+ box-shadow:0 0 0 1px #72e7da,0 15px 38px #00161a99}
+.world-choice-art{height:116px;width:100%;position:relative;
+ display:grid;place-items:center;overflow:hidden}
+.world-choice-art span{font:900 46px/1 "Barlow Condensed",sans-serif;
+ text-shadow:0 8px 20px #00182666}
+.world-choice-art:after{content:"";position:absolute;inset:auto 0 0;
+ height:24px;background:linear-gradient(transparent,#081827)}
+.rio-art{background:radial-gradient(ellipse at 28% 75%,#568872 0 11%,
+ transparent 12%),radial-gradient(ellipse at 70% 71%,#8daca3 0 18%,
+ transparent 19%),linear-gradient(155deg,#17435c 10%,#2c7085 51%,
+ #0b253f 52%,#10485d 100%)}
+.aetheria-art{background:radial-gradient(circle at 79% 10%,#e8eabb 0 7%,
+ transparent 8%),radial-gradient(ellipse at 48% 86%,#647d83 0 19%,
+ transparent 20%),linear-gradient(140deg,#244478 3%,#68728b 39%,
+ #2e6f6e 70%,#154756)}
+.lite-art{background:radial-gradient(circle at 68% 31%,#b9dacf 0 8%,
+ transparent 9%),linear-gradient(145deg,#29334c,#25626d 52%,#123b45 100%)}
+.world-choice-copy{padding:15px 12px 14px;display:flex;flex-direction:column;
+ gap:9px;flex:1}
+.world-choice-copy strong{font:800 19px/1 "Barlow Condensed",sans-serif;
+ letter-spacing:.06em}
+.world-choice-copy small{color:#aac8d1;line-height:1.35;font-size:10px;
+ min-height:42px}
+.world-choice-copy em{font-size:9px;font-style:normal;font-weight:800;
+ letter-spacing:.12em;color:#79e7d7}
+.world-choice:disabled{cursor:wait;opacity:.65}
+#welcome.overlay{overflow:auto;align-items:flex-start}
+#welcome .welcome-card{width:min(1100px,100%);padding:clamp(22px,4vh,45px)
+ 16px 28px;margin:auto}
+.welcome-overline{color:#99d4d9;font-size:10px;font-weight:800;
+ letter-spacing:.22em}
+.welcome-symbol{font:800 13px/1.4 "Barlow Condensed",sans-serif;
+ color:#77e7e5;letter-spacing:.45em;margin:8px auto}
+.welcome-symbol span{letter-spacing:.2em}
+#welcome .welcome-card h1{font-size:clamp(52px,7.5vw,96px);
+ margin:10px 0 10px;letter-spacing:.013em;line-height:.95}
+.welcome-tagline{font:800 13px/1.4 "Barlow Condensed",sans-serif;
+ letter-spacing:.15em;color:#a2f0df!important;margin:0 auto 12px!important}
+#welcome-desc{max-width:660px!important;font-size:12px!important;
+ line-height:1.55!important}
+#welcome .world-welcome-label{margin:14px auto 7px}
+#welcome .world-welcome-select{max-width:420px;margin-bottom:12px}
+#welcome .welcome-features{margin:14px auto 18px;flex-wrap:wrap}
+.welcome-actions{display:flex;gap:10px;max-width:680px;margin:auto}
+.welcome-actions .hero-button{margin:0;flex:1;max-width:none;
+ font-size:clamp(13px,2vw,19px);padding:14px 9px}
+#welcome .link-button{margin:14px auto}
+#welcome .safe-link{display:inline-block;margin-top:12px}
+.hud-restore{display:none;position:fixed;z-index:30;top:10px;right:12px;
+ border:1px solid #85e7de;border-radius:7px;padding:9px 11px;
+ background:#071e27de;color:#e0fcf8;font-size:10px;letter-spacing:.08em;
+ font-weight:800;cursor:pointer;opacity:0;transition:opacity .15s}
+body.cinematic-mode #hud-restore{display:block}
+body.cinematic-mode #hud-restore:hover,
+body.cinematic-mode #hud-restore:focus-visible{opacity:1}
+body.cinematic-mode :is(.topbar,.controls-panel,.map-panel,.hud,
+ .mobile-controls,.challenge-hud,.crosshair,.warning,.footer-hint,
+ #vignette,.geo-attribution){display:none!important}
+body.cinematic-mode #scene{cursor:none}
+@media(max-width:760px){
+ .world-cards{grid-template-columns:1fr;gap:8px}
+ .world-choice{flex-direction:row;min-height:95px}
+ .world-choice-art{width:95px;min-width:95px;height:auto}
+ .world-choice-art span{font-size:34px}
+ .world-choice-copy{padding:10px;gap:5px}
+ .world-choice-copy small{min-height:0;font-size:10px}
+ #welcome .welcome-card{padding:25px 12px 20px}
+ #welcome .welcome-card h1{font-size:clamp(48px,9vw,72px)}
+ .welcome-actions{flex-direction:column}
+ .welcome-actions .hero-button{font-size:15px}
+ .welcome-tagline{font-size:10px!important}
+}
+@media(pointer:coarse){
+ body.cinematic-mode #hud-restore{opacity:.45}
+}
