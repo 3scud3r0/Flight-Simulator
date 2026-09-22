@@ -34,8 +34,14 @@ try {
   try {
     THREE = await import("https://unpkg.com/three@0.180.0/build/three.module.js");
   } catch (secondError) {
-    loading.textContent = "Não foi possível carregar a biblioteca 3D. Verifique a internet e atualize a página.";
-    throw secondError;
+    try {
+      THREE = await import("https://esm.sh/three@0.180.0");
+    } catch (thirdError) {
+      loading.textContent =
+        "Biblioteca 3D indisponível. Verifique a conexão/CDN ou tente o modo compatibilidade.";
+      throw new AggregateError(
+        [firstError, secondError, thirdError], "Three.js unavailable");
+    }
   }
 }
 
