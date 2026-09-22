@@ -1,6 +1,8 @@
 /** Algorithms 131–142: procedural airframe geometry and animation poses. */
 import {clamp,lerp,smooth,vec,add,sub,mul,hash} from "./math.js";
 export function parametricFuselage(sections,radial=24){
+ if(sections.length<2||sections.length>1024||!Number.isInteger(radial)||radial<3||radial>128)
+ throw RangeError("Invalid fuselage mesh budget");
  const vertices=[],indices=[];
  for(let i=0;i<sections.length;i++){const s=sections[i];
  for(let j=0;j<radial;j++){const angle=j*2*Math.PI/radial;
@@ -12,6 +14,8 @@ export function parametricFuselage(sections,radial=24){
 }
 export function airfoilWingMesh({span=11,chord=1.6,tipChord=.7,
  sweep=.5,dihedral=.05,camber=.035,thickness=.12,stations=12}={}){
+ if(!(span>0&&chord>0&&tipChord>0)||!Number.isInteger(stations)||stations<1||stations>128)
+ throw RangeError("Invalid wing geometry budget");
  const vertices=[],triangles=[];
  for(let side of [-1,1]){const offset=vertices.length;
  for(let i=0;i<=stations;i++){const t=i/stations,localChord=lerp(chord,tipChord,t);
@@ -37,12 +41,12 @@ export function movableSurfaces(input,limits={ailerons:.28,elevator:.31,rudder:.
  flaps:clamp(input.flaps)*limits.flaps};
 }
 export function landingGearAnimation(previous,extended,dt,speed=.65){
- const progress=clamp(previous+(extended?1:-1)*dt*speed);
+ const progress=clamp(previous+(extended?1:-1)*Math.max(0,dt)*Math.max(0,speed));
  return {progress,doorAngle:Math.sin(Math.PI*progress)*1.2,
  strutAngle:progress*Math.PI/2,locked:progress===0||progress===1};
 }
 export function propellerMotionBlur(rpm,fps,bladeCount=2){
- const cycles=rpm/60/Math.max(1,fps),opacity=clamp(cycles*bladeCount/3);
+ const cycles=Math.max(0,rpm)/60/Math.max(1,fps),opacity=clamp(cycles*Math.max(1,bladeCount)/3);
  return {discOpacity:opacity,bladeOpacity:1-opacity,
  rotationStep:cycles*2*Math.PI};
 }
@@ -67,7 +71,7 @@ export function proceduralCockpitAnimation(input,state){
 }
 export function inertialCamera(previous,aircraft,acceleration,dt,{
  spring=5,shake=.005}={}){
- const blend=1-Math.exp(-Math.max(0,dt)*spring);
+ const blend=1-Math.exp(-Math.max(0,dt)*Math.max(0,spring));
  return {position:add(previous.position,mul(sub(aircraft.position,
  previous.position),blend)),
  pitch:lerp(previous.pitch,aircraft.pitch-acceleration.y*shake,blend),
@@ -85,7 +89,7 @@ export function componentDamage(components,collision){
  dy=c.position.y-collision.position.y,dz=c.position.z-collision.position.z;
  const distance=Math.hypot(dx,dy,dz),exposure=Math.exp(
  -1*(distance/Math.max(1,collision.radius))**2);
- c.health=clamp(c.health-1*(collision.energy/Math.max(1,c.toughness))*exposure)}
+ c.health=clamp(c.health-Math.max(0,collision.energy)/Math.max(1,c.toughness)*exposure)}
  return output;
 }
 export const algorithms=[parametricFuselage,airfoilWingMesh,aircraftLOD,
