@@ -107,3 +107,71 @@ kbd{padding:4px 7px;min-width:23px;text-align:center;background:#1a3549;color:#a
 @media(max-height:750px) and (min-width:601px){.controls-panel{top:84px;max-height:calc(100vh - 230px);overflow:auto;padding:14px}.panel-heading{margin-bottom:10px;padding-bottom:8px}.controls-panel select{margin-bottom:9px;padding:8px}.panel-separator{margin:10px 0}.hud{bottom:24px}.map-panel{top:84px;width:208px}.footer-hint{bottom:7px}}
 
 .map-panel.hidden{display:none}
+
+/* v0.2 — challenge, controller and accessible compact mobile layout */
+#mobile-menu{display:none}
+.challenge-hud{position:fixed;z-index:8;left:50%;top:88px;transform:translateX(-50%);width:min(408px,calc(100vw - 44px));background:rgba(3,17,30,.88);border:1px solid rgba(113,227,245,.48);box-shadow:0 0 36px #0eeaff1c,0 12px 50px #0008;backdrop-filter:blur(20px);border-radius:8px;padding:13px 16px 10px;pointer-events:none}
+.challenge-hud.hidden{display:none}
+.challenge-kicker{text-align:center;letter-spacing:2.4px;color:#8febf6;font-weight:800;font-size:10px}
+.challenge-stats{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:8px;text-align:center;margin:8px 0}
+.challenge-stats>div{border-right:1px solid var(--line)}
+.challenge-stats>div:last-child{border:0}
+.challenge-stats small{display:block;color:#99b8c7;font-size:8px;letter-spacing:1.3px;font-weight:700}
+.challenge-stats strong{display:block;font-family:"Barlow Condensed",sans-serif;font-size:33px;font-weight:800;line-height:1.13}
+.challenge-bottom{display:flex;justify-content:space-between;align-items:center;font-size:10px;font-weight:800;letter-spacing:.6px;color:#91eece}
+#boost{color:#9fb4c5}#boost.active{color:#ffe194;text-shadow:0 0 10px #ffd06d88}
+.course-progress{margin:9px 0 0}
+.challenge-feedback{text-align:center;height:17px;margin-top:4px;color:#ffe194;font-size:10px;letter-spacing:.6px;font-weight:800}
+.controller-box{padding:11px 9px 5px;margin-top:12px;background:#09253891;border:1px solid var(--line);border-radius:4px}
+.controller-title{font-family:"Barlow Condensed",sans-serif;font-size:15px;font-weight:800;letter-spacing:.9px;color:#a7eaf4}
+#gamepad-status{color:#9eb5c4;font-size:10px;margin:7px 0;line-height:1.4}
+.controller-box .controller-option{display:flex;align-items:center;gap:7px;letter-spacing:0;font-size:10px;margin:8px 0;color:#d8edf5}
+.controller-option input{accent-color:var(--cyan);width:15px;height:15px;flex:none}
+.controller-box p{font-size:9px;color:#7b9aae;line-height:1.5}
+#start-challenge{background:rgba(47,175,199,.17);color:#96f0fc;border-color:#4fbbd2;margin-bottom:9px}
+#start-challenge:hover{background:#8fe9f7;color:#082439}
+.challenge-start{margin-top:10px;background:rgba(36,171,192,.15);border-color:#66d9ed;color:#adf4ff}
+.challenge-start:hover{background:#aaf5ff;color:#082439}
+.result-card{text-align:center;max-width:440px}
+.result-card .eyebrow{justify-content:center}
+.result-card h2{margin-bottom:8px}
+.result-card p{margin:8px 0 13px}
+.result-score{font:900 92px/1 "Barlow Condensed",sans-serif;color:#95edff;letter-spacing:1px}
+.result-card .button-secondary{margin-top:9px}
+#map-panel.hidden{display:none}
+@media(max-width:1200px){.challenge-hud{top:78px;width:345px;padding:10px}.challenge-stats strong{font-size:27px}}
+@media(max-width:850px){.challenge-hud{top:70px;width:286px}.challenge-kicker{font-size:8px;letter-spacing:1px}.challenge-stats strong{font-size:24px}.challenge-stats small{font-size:7px}}
+@media(max-width:600px){
+  #mobile-menu{display:inline-block}
+  .controls-panel{display:none;top:64px;left:8px;width:min(310px,calc(100vw - 16px));max-height:calc(100dvh - 166px);overflow:auto;z-index:18}
+  body.mobile-menu-open .controls-panel{display:block}
+  .map-panel{top:64px;right:8px;opacity:.85}
+  body.mobile-menu-open .map-panel{display:none}
+  .challenge-hud{top:62px;width:min(280px,calc(100vw - 145px));padding:6px 8px}
+  .challenge-kicker{font-size:7px;letter-spacing:0}
+  .challenge-stats{margin:3px 0;gap:2px}
+  .challenge-stats strong{font-size:20px}
+  .challenge-stats small{font-size:6px}
+  .challenge-bottom{font-size:7px}
+  .course-progress{margin-top:4px}
+  .challenge-feedback{font-size:8px;height:12px;margin-top:1px}
+  .mobile-controls{bottom:81px;align-items:center}
+  .mobile-buttons button{min-height:29px}
+  .hud-cell .hud-extra{white-space:nowrap}
+  .result-score{font-size:65px}
+}
+@media(max-width:600px) and (orientation:landscape){
+ .map-panel{display:none}
+ .challenge-hud{top:58px;left:50%;width:230px}
+ .controls-panel{max-height:calc(100dvh - 64px)}
+ .mobile-controls{bottom:75px}
+ .mobile-buttons{display:grid;grid-template-columns:1fr 1fr}
+ .stick{width:82px;height:82px}
+ .stick>div{left:26px;top:26px}
+ .hud{min-height:52px}
+}
+@media(max-height:660px) and (min-width:601px){
+ .challenge-hud{top:68px;left:50%;width:300px;padding:6px 10px}
+ .challenge-stats strong{font-size:23px}
+ .challenge-feedback{height:12px}
+}
