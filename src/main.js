@@ -14,6 +14,15 @@ import { makeDetailedAircraft } from "./aircraft-model.js";
 import { createOcean } from "./ocean.js";
 
 const $ = id => document.getElementById(id);
+const SAFE_MODE = new URLSearchParams(location.search).has("safe");
+if (SAFE_MODE) {
+  $("terrain-mode").value = "art";
+  $("flight-model").value = "classic";
+  $("quality").value = "eco";
+  $("imagery").value = "none";
+  $("terrain-status").textContent =
+    "Modo compatibilidade: gráficos reduzidos, sem satélite nem shaders avançados.";
+}
 const loading = $("loading");
 const canvas = $("scene");
 let THREE;
@@ -43,10 +52,13 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(64, 1, .6, 92000);
 const clock = new THREE.Clock();
-const world = createWorld(THREE, scene, renderer);
-const sky = createSky(THREE, scene, world, renderer);
-world.sea.visible = false;
-const ocean = createOcean(THREE, scene, renderer);
+const world = createWorld(THREE, scene, renderer, SAFE_MODE);
+let sky = null, ocean = null;
+if (!SAFE_MODE) {
+  sky = createSky(THREE, scene, world, renderer);
+  ocean = createOcean(THREE, scene, renderer);
+  world.sea.visible = false;
+}
 const nowBrazil = new Intl.DateTimeFormat("en-CA", {
   timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit"
 });
@@ -671,7 +683,7 @@ setClockText();
 buildMap();
 spawn(false);
 resize();
-rebuildTerrain();
+// Schedule network data only after the first interactive frame.
 world.updateEnvironment(hour, $("weather").value, 0);
 updateHud();
 let last = performance.now();
@@ -721,9 +733,11 @@ function animate(now) {
   const localDate = new Date(
     ($("flight-date").value || "2026-09-22") +
     "T" + hourText + ":00-03:00");
-  const environment = sky.update(localDate, $("weather").value, dt, flight);
-  environmentWind = environment.wind || environmentWind;
-  ocean.update(dt, environment.sun.vector, $("weather").value);
+  if (sky) {
+    const environment = sky.update(localDate, $("weather").value, dt, flight);
+    environmentWind = environment.wind || environmentWind;
+    ocean?.update(dt, environment.sun.vector, $("weather").value);
+  }
   terrainEngine?.update(flight.x, flight.z);
   updateCamera(dt);
   if (mapTimer >= .18) {
@@ -737,3 +751,9 @@ function animate(now) {
   requestAnimationFrame(animate);
 }
 requestAnimationFrame(animate);
+if (!SAFE_MODE && $("terrain-mode").value === "real") {
+  // A later macrotask lets browsers paint the menu/cockpit first.
+  setTimeout(rebuildTerrain, 1200);
+} else {
+  $("terrain-status").textContent = "Modo leve ativo · cenário disponível.";
+}
