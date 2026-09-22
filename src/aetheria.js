@@ -106,7 +106,7 @@ export function aetheriaWeatherAt(x,z,seconds,preset="limpo"){
   visibilityMeters:Weather.meteorologicalVisibility(wet.humidity,
    storm*.32,preset==="névoa"?.6:0,region.biome==="desert"?.15:0)};
 }
-function disposeGroup(THREE,group){
+function disposeGroup(THREE,group,disposeMaterials=true){
  if(!group)return;
  const geos=new Set(),materials=new Set();
  group.traverse(node=>{if(node.isMesh){
@@ -116,7 +116,7 @@ function disposeGroup(THREE,group){
  }});
  group.removeFromParent();
  for(const g of geos)g.dispose();
- for(const m of materials)m.dispose();
+ if(disposeMaterials)for(const m of materials)m.dispose();
 }
 export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
  compatibility=false}={}){
@@ -131,7 +131,7 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
   color:0x145778,roughness:.31,metalness:.05,transparent:true,opacity:.96});
  const sea=new THREE.Mesh(new THREE.PlaneGeometry(
   CELL*(radius*2+3),CELL*(radius*2+3),1,1),waterMaterial);
- sea.rotation.x=-Math.PI/2;sea.position.y=-2.5;
+ sea.rotation.x=-Math.PI/2;sea.position.y=-.75;
  sea.receiveShadow=false;sea.name="Aetheria_Local_Ocean";
  root.add(sea);
  let airportGroup=new THREE.Group();airportGroup.name="Aetheria_Active_Airport";
@@ -220,7 +220,7 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
  const greenMat=new THREE.MeshBasicMaterial({color:0x43ee9f});
  const litMat=new THREE.MeshBasicMaterial({color:0xecf3db});
  function airportMesh(airport){
-  disposeGroup(THREE,airportGroup);
+  disposeGroup(THREE,airportGroup,false);
   // The group itself is kept attached; disposeGroup removes all children.
   // Create a fresh child group so scene ownership stays explicit.
   const parent=new THREE.Group();root.add(parent);
@@ -275,6 +275,8 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
   cloudMat.opacity=weather==="nublado"?.96:.75;
   renderer.toneMappingExposure=.37+daylight*.87;
   runwayGlow.opacity=daylight<.22?.95:.03;
+  litMat.color.setRGB(.18+(1-daylight)*.82,
+    .20+(1-daylight)*.81,.18+(1-daylight)*.77);
  }
  function update(x,z,dt=0){
   if(!active)return;
@@ -291,12 +293,14 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
    root.remove(mesh);mesh.geometry.dispose();tiles.delete(key);
   }
   // One tile per update: never stall multiple physics/render frames.
-  for(const item of desired)if(!tiles.has(item.key)){
-   makeTile(item.ix,item.iz);break;
-  }
+  // Budget one chunk every fifth frame to protect input latency and mobile.
+  if(!tiles.size||++buildCounter%5===0)
+    for(const item of desired)if(!tiles.has(item.key)){
+      makeTile(item.ix,item.iz);break;
+    }
   if(Math.abs(lastCenterX-x)>500||Math.abs(lastCenterZ-z)>500){
    lastCenterX=x;lastCenterZ=z;
-   sea.position.set(x,-2.5,z);
+   sea.position.set(x,-.75,z);
    nature.position.set(x,0,z);
    sun.target.position.set(x,0,z);
    sun.position.set(x+7800,15000,z+3200);
@@ -305,7 +309,7 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
    if((near?.id||null)!==lastAirport){
     lastAirport=near?.id||null;
     if(near)airportMesh(near);
-    else if(airportGroup){disposeGroup(THREE,airportGroup);
+    else if(airportGroup){disposeGroup(THREE,airportGroup,false);
      airportGroup=new THREE.Group();root.add(airportGroup)}
    }
   }
