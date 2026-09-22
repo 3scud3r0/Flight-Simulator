@@ -2,6 +2,7 @@
 import {clamp,lerp} from "./math.js";
 export function adaptiveResolution(current,frameMs,{target=16.67,
  min=.55,max=1.5,step=.045}={}){
+ target=Math.max(1,target);step=Math.max(0,step);
  const deadband=target*.08;
  if(frameMs>target+deadband)return clamp(current-step,min,max);
  if(frameMs<target-deadband)return clamp(current+step*.35,min,max);
@@ -9,6 +10,8 @@ export function adaptiveResolution(current,frameMs,{target=16.67,
 }
 export function dynamicQualityBudget(metrics,quality){
  const q={...quality};const over=Math.max(0,metrics.frameMs-16.67);
+ q.cloudSteps=q.cloudSteps??16;q.shadowDistance=q.shadowDistance??1000;
+ q.vegetationDistance=q.vegetationDistance??800;
  if(over>2){q.cloudSteps=Math.max(4,Math.floor(q.cloudSteps*.86));
  q.shadowDistance=Math.max(200,Math.floor(q.shadowDistance*.9));
  q.vegetationDistance=Math.max(150,Math.floor(q.vegetationDistance*.89))}
@@ -17,13 +20,13 @@ export function dynamicQualityBudget(metrics,quality){
  return q;
 }
 export function gpuTimeProfiling(samples){
- const sorted=[...samples].sort((a,b)=>a-b),sum=samples.reduce((a,b)=>a+b,0);
- return {mean:sum/Math.max(1,samples.length),
+ const sorted=[...valid].sort((a,b)=>a-b),sum=valid.reduce((a,b)=>a+b,0);
+ return {mean:sum/Math.max(1,valid.length),
  p95:sorted[Math.max(0,Math.ceil(.95*sorted.length)-1)]||0,
  worst:sorted.at(-1)||0};
 }
 export function objectPool(factory,reset,capacity=256){
- const available=[],leased=new Set();return {
+ const available=[],leased=new Set();capacity=Math.max(0,Math.floor(capacity));return {
  acquire(){const obj=available.pop()??factory();leased.add(obj);return obj},
  release(obj){if(!leased.delete(obj))return false;reset(obj);
  if(available.length<capacity)available.push(obj);return true},
@@ -63,6 +66,7 @@ export function devicePresets({mobile=false,deviceMemory=4,
  shadows:!low,textureSize:low?256:gpuTier>=3?2048:1024};
 }
 export function frameWorkBudget(jobs,maxMs=4){
+ maxMs=Math.max(0,maxMs);
  const selected=[],pending=[];let used=0;
  for(const job of jobs){if(used+job.estimateMs<=maxMs){
  selected.push(job);used+=job.estimateMs}
@@ -72,7 +76,7 @@ export function frameWorkBudget(jobs,maxMs=4){
 export function physicsInvariantTests(state,limits={}){
  const failures=[];for(const name of ["x","y","z","vx","vy","vz","speed"])
  if(name in state&&!Number.isFinite(state[name]))failures.push(name+" non-finite");
- if(state.mass!==undefined&&state.mass<=0)failures.push("mass");
+ if(state.mass!==undefined&&!(state.mass>0))failures.push("mass");
  if(state.q){const n=Math.hypot(state.q.w,state.q.x,state.q.y,state.q.z);
  if(Math.abs(n-1)>.001)failures.push("quaternion norm")}
  if(state.speed>(limits.maxSpeed??Infinity))failures.push("overspeed");
@@ -85,6 +89,7 @@ export function visualRegression(actual,reference,{maxMean=.02}={}){
  mean/=Math.max(1,actual.length);return {pass:mean<=maxMean,mean,max};
 }
 export function memoryLeakWatch(samples,{window=60,thresholdMB=24}={}){
+ window=Math.max(1,Math.floor(window));
  const early=samples.slice(0,window),late=samples.slice(-window);
  const avg=a=>a.reduce((s,v)=>s+v,0)/Math.max(1,a.length);
  const growth=avg(late)-avg(early);
@@ -92,7 +97,8 @@ export function memoryLeakWatch(samples,{window=60,thresholdMB=24}={}){
  growthMB:growth};
 }
 export function localTelemetry(frames){
- const samples=frames.map(f=>f.ms),time=samples.reduce((a,b)=>a+b,0);
+ const samples=frames.map(f=>Math.max(0,Number.isFinite(f.ms)?f.ms:0)),
+ time=samples.reduce((a,b)=>a+b,0);
  return {fps:time?frames.length*1000/time:0,
  averageMs:time/Math.max(1,frames.length),
  slowFrames:samples.filter(x=>x>33.4).length,
@@ -100,7 +106,7 @@ export function localTelemetry(frames){
 }
 export function errorRecovery(operation,fallback,{attempts=2}={}){
  return async()=>{let error;
- for(let i=0;i<Math.max(1,attempts);i++)try{return await operation(i)}
+ for(let i=0;i<Math.min(12,Math.max(1,Math.floor(attempts))));i++)try{return await operation(i)}
  catch(e){error=e}
  return fallback(error)};
 }
