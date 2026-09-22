@@ -115,3 +115,31 @@ O teste automatizado **não** substitui um ensaio gráfico em Chrome/Firefox/Saf
 | Instrumentação | HUD ilustrativo | Instrumentos de cabine 3D e navegação |
 | Multiplayer | Não incluído | Backend dedicado com estado autoritativo |
 | Testes | Unidade + sintaxe | End-to-end com screenshots, FPS e regressão |
+
+## 8. Modo Desafio Aéreo e túnel 3D (v0.2)
+
+`challenge.js` não usa Three.js nem DOM. `createCourse()` constrói 14 argolas em metros com orientação normalizada e distância crescente na direção inicial da aeronave. Os centros variam lateral e verticalmente; a altura é limitada a pelo menos 170 m acima da elevação aproximada amostrada. A corrida começa em voo panorâmico, não na pista.
+
+Cada argola é um plano circular orientado pela proa inicial. Para testar o cruzamento entre a posição anterior `P₀` e a atual `P₁`, o módulo calcula as distâncias assinadas ao plano, `dᵢ = (Pᵢ − C) · n`. Só é uma travessia válida se `d₀ ≤ 0` e `d₁ > 0`. O ponto de interseção é `I = P₀ + t(P₁−P₀)`, com `t = −d₀/(d₁−d₀)`; a distância radial é a norma da projeção de `I−C` no plano do círculo. Se essa distância for menor ou igual ao raio, a argola conta como acerto. O algoritmo não depende de colisão da geometria de efeito visual: a renderização e a regra de jogo são independentes. Em cada passo apenas a próxima argola pode ser consumida, impedindo dupla pontuação.
+
+```text
+pontos = (100 + arredondar(velocidade_em_nós × 0,6)
+          + bônus_de_velocidade) × multiplicador_de_combo
+
+bônus_de_velocidade = 125 quando velocidade ≥ 160 nós,
+                       75 quando velocidade ≥ 100 nós,
+                        0 nos outros casos
+multiplicador_de_combo = mínimo(5, acertos_consecutivos)
+```
+
+Errar a argola zera o combo. Acertá-la ativa por 3,5 s uma aceleração extra de 12 m/s², limitada pela física. Esse impulso é deliberadamente **arcade** e é injetado apenas pelo controlador do Desafio em `stepFlight`; não se aplica ao Voo Livre. A velocidade reforçada diminui progressivamente após o fim do impulso. A corrida tem 180 s, pode terminar por tempo, percurso completo ou dano da aeronave; o recorde por modelo é salvo localmente, quando `localStorage` está disponível.
+
+`course-renderer.js` constrói toros luminosos e três guias tubulares ligados por curvas Catmull–Rom. O visual não define a geometria de colisão. As instâncias, materiais e geometrias do túnel são removidos e liberados ao trocar de modo ou reiniciar.
+
+## 9. Entrada multiplataforma
+
+`gamepad.js` converte a Gamepad API em comandos de eixo normalizados, gatilhos e eventos de botão por **borda de subida** — um botão segurado não repete alternâncias de trem ou de câmera a cada quadro. A zona morta é de 0,13; a região ativa é reescalada para preservar amplitude. O adaptador é puro e testável com dados simulados. `main.js` pesquisa `navigator.getGamepads()` no quadro de animação, detecta hotplug e soma os eixos do gamepad ao teclado e ao manche de toque antes de limitar o comando ao intervalo [-1,1]. Pode-se desabilitar o controle ou inverter sua arfagem.
+
+O navegador **não pode prometer pareamento** de USB/Bluetooth: o sistema operacional realiza a conexão e o navegador expõe os controladores compatíveis. O gamepad pode funcionar também em navegadores móveis, mas depende de fabricante, dispositivo e navegador.
+
+No celular, o manche virtual usa Pointer Events e `setPointerCapture()`, inclusive para eventos de cancelamento. Há controles de leme, potência, flaps, trem, câmera, pausa e menu de configuração. A orientação horizontal tem ajustes próprios; o modo econômico reduz o custo de rasterização. Não há controle físico necessário para começar a jogar.
