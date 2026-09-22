@@ -125,8 +125,35 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
  const tiles=new Map(),failed=new Set();
  const radius=compatibility?1:mobile?1:2;
  const subdivisions=compatibility?10:mobile?14:22;
+ // Reusable original 128px microtexture; no imagery API or downloads.
+ // All terrain tiles share one GPU texture, avoiding per-tile allocations.
+ const textureCanvas=document.createElement("canvas");
+ const textureSize=compatibility||mobile?64:128;
+ textureCanvas.width=textureCanvas.height=textureSize;
+ const textureContext=textureCanvas.getContext("2d");
+ if(!textureContext)throw Error("Canvas 2D unavailable for procedural soil");
+ const texturePixels=textureContext.createImageData(textureSize,textureSize);
+ for(let row=0;row<textureSize;row++)
+  for(let col=0;col<textureSize;col++){
+   const i=(row*textureSize+col)*4;
+   const n=Math.sin(col*91.77+row*37.63)*
+    Math.cos(col*14.17-row*42.11);
+   const v=Math.round(225+n*19);
+   texturePixels.data[i]=v;
+   texturePixels.data[i+1]=v;
+   texturePixels.data[i+2]=v;
+   texturePixels.data[i+3]=255;
+  }
+ textureContext.putImageData(texturePixels,0,0);
+ const soilTexture=new THREE.CanvasTexture(textureCanvas);
+ soilTexture.colorSpace=THREE.SRGBColorSpace;
+ soilTexture.wrapS=soilTexture.wrapT=THREE.RepeatWrapping;
+ soilTexture.repeat.set(16,16);
+ soilTexture.anisotropy=Math.min(4,
+  renderer.capabilities.getMaxAnisotropy?.()||2);
  const material=new THREE.MeshStandardMaterial({
-  vertexColors:true,roughness:.96,metalness:0,side:THREE.DoubleSide});
+  vertexColors:true,map:soilTexture,roughness:.96,
+  metalness:0,side:THREE.DoubleSide});
  const waterMaterial=new THREE.MeshStandardMaterial({
   color:0x145778,roughness:.31,metalness:.05,transparent:true,opacity:.96});
  const sea=new THREE.Mesh(new THREE.PlaneGeometry(
@@ -420,7 +447,8 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
   root.remove(sea);sea.geometry.dispose();
   disposeGroup(THREE,nature);
   disposeGroup(THREE,root);
-  waterMaterial.dispose();material.dispose();airportMat.dispose();
+  waterMaterial.dispose();material.dispose();soilTexture.dispose();
+  airportMat.dispose();
   stripeMat.dispose();terminalMat.dispose();redMat.dispose();
   greenMat.dispose();litMat.dispose();runwayGlow.dispose();
   scene.remove(sun,sun.target,hemi);
