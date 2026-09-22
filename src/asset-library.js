@@ -45,9 +45,9 @@ export function planAirportAssets(airport,region,{mobile=false}={}){
   /4294967296);
  const items=[],urban=URBAN.has(region.biome)||
   airport.category==="internacional";
- const full=!mobile,cityCount=urban?(full?64:12):0;
+ const full=!mobile,cityCount=urban?(full?80:14):0;
  const treeCount=TREE_BIOMES.has(region.biome)?
-  full?100:24:full?65:10;
+  full?100:24:full?80:15;
  const rockCount=full?34:8;
  const heading=airport.heading*Math.PI/180;
  const forward={x:Math.sin(heading),z:-Math.cos(heading)};
@@ -71,13 +71,13 @@ export function planAirportAssets(airport,region,{mobile=false}={}){
  append(CHOICES.hangars,mobile?3:7,450,1000,24,48);
  if(urban)append(region.biome==="industrial"?CHOICES.industrial:
   region.biome==="historic"?CHOICES.suburban:CHOICES.city,
-  cityCount,850,full?3300:2100,region.biome==="megacity"?
+  cityCount,520,full?2050:1450,region.biome==="megacity"?
     86:region.biome==="futuristic"?160:43,45);
  if(treeCount)append(region.biome==="tropical"?
   [CHOICES.trees[5],CHOICES.trees[0]]:region.biome==="alpine"||
   region.biome==="polar"?[CHOICES.trees[3],CHOICES.trees[4]]:
-  CHOICES.trees,treeCount,900,full?3600:2500,18,13);
- append(CHOICES.rocks,rockCount,750,full?3100:1950,14,20);
+  CHOICES.trees,treeCount,500,full?2200:1700,18,13);
+ append(CHOICES.rocks,rockCount,650,full?2100:1600,14,20);
  append(CHOICES.detail,full?24:5,250,850,7,4);
  return items.slice(0,SLICE_MAX);
 }
