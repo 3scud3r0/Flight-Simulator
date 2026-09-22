@@ -503,7 +503,7 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
    dummy.updateMatrix();lights.setMatrixAt(i*2+j,dummy.matrix);
   }
   lights.instanceMatrix.needsUpdate=true;parent.add(lights);
-  for(let k=0;k<(airport.category==="internacional"?9:3);k++){
+  for(let k=0;k<(assets?0:airport.category==="internacional"?9:3);k++){
    const h=8+(k*13)%21;
    const terminal=new THREE.Mesh(new THREE.BoxGeometry(
     20+(k%3)*10,h,18+(k%4)*8),terminalMat);
