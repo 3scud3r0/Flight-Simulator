@@ -16,10 +16,15 @@ full Aetheria renderer.
   lattice, with taller buildings toward its center. Jungle, tropical, alpine
   and city regions receive biome-specific foliage. Alpine/jungle terrain
   receives sparse rock placements.
+- **Nova Íris road-and-light pass:** a global 360 m avenue grid is cut into
+  tile-owned 100 m segments (200 m on mobile), rejecting water, excessive
+  grade and runway/taxi corridors. Instanced road surfaces, lamp posts and
+  unlit-by-day/emissive-by-night light bulbs provide consistent distant
+  composition. Streets are visual-only, not driveable collision geometry.
 - **Airport protection:** building and vegetation placements reject an
   extended runway/taxi safety envelope. Both the rendering geometry and
   collision sampler use the original world-space height function.
-- **Instanced drawing:** scenery shares five geometries, four materials and,
+- **Instanced drawing:** scenery shares six geometries, seven materials and,
   where Canvas 2D is available, locally generated window/albedo textures.
   Each tile uses a few bounded GPU batches rather than one draw call per
   building or tree; its instance buffers are released on eviction.
@@ -36,8 +41,8 @@ objects. `src/terrain-detail.js` is a pure LOD policy. The adapter in
 `src/aetheria.js` connects all three to the existing update and disposal
 lifecycle.
 
-**Not yet delivered:** photoreal scanned/handcrafted urban assets, large-scale
-road networks, cascade shadows, volumetric clouds, sophisticated reflections,
+**Not yet delivered:** photoreal scanned/handcrafted urban assets, organic
+road-network topology and traffic, cascade shadows, volumetric clouds, sophisticated reflections,
 photogrammetry, real traffic, airport-grade authored scenery, or certified
 aerodynamics. Procedural box buildings and low-poly canopy geometry are an
 intermediate representation. Further artistic asset and measured GPU work
@@ -57,6 +62,6 @@ browser proof captures real WebGL screenshots and a flight video. Headless
 software WebGL alone is not a GPU performance benchmark.
 
 The new pure tests cover deterministic scenery, tile seams, world bounds,
-airport exclusions, underwater exclusion, relative mobile budgets and terrain
-LOD. A browser evaluation is still required to validate lighting, aesthetic
+airport exclusions, underwater exclusion, relative mobile budgets, terrain
+LOD, street tile uniqueness and graded-road rejection. A browser evaluation is still required to validate lighting, aesthetic
 quality, and actual frame times across representative GPUs.
