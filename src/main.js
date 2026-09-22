@@ -94,8 +94,16 @@ function rebuildTerrain() {
     onStatus(message) { $("terrain-status").textContent = message; },
     onFirstTile() {
       loadSuccess = true;
-      world.setRealTerrainEnabled(true);
-      $("terrain-status").textContent = "Elevação real ativa; carregando imagem orbital…";
+      $("terrain-status").textContent =
+        "Primeiro bloco de elevação disponível; preenchendo a região…";
+    },
+    onReady() {
+      // Never erase the entire fallback world when only one small tile exists.
+      if (terrainEngine?.readyCount >= 7) {
+        world.setRealTerrainEnabled(true);
+        $("terrain-status").textContent =
+          "Relevo real ativo · imagens geográficas carregando em segundo plano.";
+      }
     }
   });
   if (flight) terrainEngine.update(flight.x, flight.z);
