@@ -70,7 +70,7 @@ const clock = new THREE.Clock();
 const rioWorld = createWorld(THREE, scene, renderer, SAFE_MODE);
 const rioObjects = scene.children.slice();
 let world = rioWorld;
-let activeWorld = "rio", aetheriaModule = null, aetheriaWorld = null;
+let activeWorld = "rio", selectedWorld = "rio", aetheriaModule = null, aetheriaWorld = null;
 let AIRPORTS = RIO_AIRPORTS, LANDMARKS = RIO_LANDMARKS;
 const geo = (lat,lon) => activeWorld === "aetheria" ?
   {x:lon,z:lat} : rioGeo(lat,lon);
@@ -651,8 +651,9 @@ function createOfflineAetheriaWorld(THREE,scene,renderer,{mobile=false,
  };
 }
 async function changeWorld(next) {
-  if(next!=="rio"&&next!=="aetheria")return;
-  if(next===activeWorld){
+  if(!["rio","aetheria","aetheria-lite"].includes(next))return;
+  const isAetheria=next!=="rio";
+  if(next===selectedWorld){
     $("welcome-world").value=$("world-select").value=next;
     return;
   }
@@ -660,19 +661,33 @@ async function changeWorld(next) {
     mode=$("game-mode").value;
   $("world-select").disabled=true;
   $("welcome-world").disabled=true;
-  $("world-info").textContent=next==="aetheria"?
+  $("world-info").textContent=isAetheria?
     "Preparando 20 regiões e 60 aeroportos fictícios…":
     "Reabrindo o Rio de Janeiro…";
   const priorPause=paused;
   paused=true;accumulator=0;
   let prepared=null;
   try{
-    if(next==="aetheria"){
-      aetheriaModule??=await import("./aetheria.js");
+    let usedFallback=false;
+    if(isAetheria){
+      const lite=next==="aetheria-lite"||SAFE_MODE;
+      $("quality").value=lite?"eco":"high";
+      if(!lite){
+        try{
+          // A failed or stale delayed module never blocks the fictional world.
+          aetheriaModule??=await import("./aetheria.js?v=0.5.1");
+        }catch(importError){
+          usedFallback=true;
+          console.warn("[Flight Simulator] High quality unavailable; using offline Lite",
+            importError);
+        }
+      }
       if(token!==worldChangeToken)return;
-      prepared=aetheriaModule.createAetheriaWorld(
-        THREE,scene,renderer,{mobile:MOBILE_DEVICE,
-          compatibility:SAFE_MODE||$("quality").value==="eco"});
+      prepared=lite||usedFallback?
+        createOfflineAetheriaWorld(THREE,scene,renderer,
+          {mobile:MOBILE_DEVICE,compatibility:true}):
+        aetheriaModule.createAetheriaWorld(THREE,scene,renderer,
+          {mobile:MOBILE_DEVICE,compatibility:false});
     }
     if(token!==worldChangeToken){
       prepared?.dispose();return;
@@ -706,24 +721,32 @@ async function changeWorld(next) {
       scene.background=new THREE.Color(0x94c4d7);
       $("map-world-label").textContent="· AETHERIA";
       $("world-info").textContent=
-        "Aetheria · 20 regiões · 60 aeroportos · offline";
+        "Aetheria · 20 regiões · 60 aeroportos · "+
+        (usedFallback?"modo leve de recuperação":
+        next==="aetheria-lite"||SAFE_MODE?"modo leve":"qualidade máxima");
     }
-    activeWorld=next;
+    activeWorld=isAetheria?"aetheria":"rio";
+    selectedWorld=next;
     $("world-select").value=$("welcome-world").value=next;
     $("rio-terrain-options").hidden=next!=="rio";
-    $("aetheria-controls").hidden=next!=="aetheria";
+    $("aetheria-controls").hidden=!isAetheria;
     $("geo-attribution").hidden=next!=="rio";
-    $("welcome-title").innerHTML=next==="rio"?
-      "O RIO É<br><em>SEU CÉU.</em>":
-      "AETHERIA É<br><em>SEU MUNDO.</em>";
+    $("welcome-title").textContent="FLIGHT SIMULATOR";
     $("welcome-desc").textContent=next==="rio"?
       "Decole sobre a Baía de Guanabara, contorne o Pão de Açúcar e descubra o Rio de Janeiro em um simulador 3D feito para o navegador.":
       "Um mundo ficcional contínuo: 20 regiões interligadas, 60 aeroportos, cordilheiras, ilhas, megacidades, vulcões e geleiras. Sem downloads de satélite.";
     $("welcome-features").innerHTML=next==="rio"?
       "<span>◈ 3 AERONAVES</span><span>◈ 3 AEROPORTOS</span><span>◈ VOO LIVRE + DESAFIO</span>":
       "<span>◈ 20 REGIÕES</span><span>◈ 60 AEROPORTOS</span><span>◈ VOO LIVRE + DESAFIO</span>";
-    if(!SAFE_MODE)sky=createSky(THREE,scene,world,renderer,
-      next==="rio"?{lat:-22.93,lon:-43.21}:{lat:0,lon:0});
+    if(!SAFE_MODE){
+      try{
+        sky=createSky(THREE,scene,world,renderer,
+          next==="rio"?{lat:-22.93,lon:-43.21}:{lat:0,lon:0});
+      }catch(skyError){
+        sky=null;
+        console.warn("[Flight Simulator] Optional sky disabled",skyError);
+      }
+    }
     fillAirportAndRouteControls();
     buildMap();
     if(wasRunning)begin(false,mode);
@@ -740,6 +763,7 @@ async function changeWorld(next) {
       "Falha ao alternar mundo: "+(error?.message||"erro desconhecido");
     // The existing Rio world remains a fallback on first load failure.
     if(activeWorld==="rio"){
+      selectedWorld="rio";
       $("world-select").value=$("welcome-world").value="rio";
     }
     paused=priorPause;
@@ -1138,7 +1162,7 @@ function animate(now) {
   if (sky) {
     const environment = sky.update(localDate, $("weather").value, dt, flight);
     environmentWind = environment.wind || environmentWind;
-    if(activeWorld==="aetheria") {
+    if(activeWorld==="aetheria" && aetheriaModule?.aetheriaWeatherAt) {
       const climate=aetheriaModule.aetheriaWeatherAt(
         flight.x,flight.z,secondsInFlight,$("weather").value);
       environmentWind=climate.wind;
@@ -1166,8 +1190,9 @@ function animate(now) {
 }
 requestAnimationFrame(animate);
 const requestedWorld=new URLSearchParams(location.search).get("world");
-if(requestedWorld==="aetheria"){
-  setTimeout(()=>changeWorld("aetheria"),200);
+if(requestedWorld==="aetheria"||requestedWorld==="aetheria-lite"){
+  setTimeout(()=>changeWorld(
+    SAFE_MODE?"aetheria-lite":requestedWorld),200);
 }else if(!SAFE_MODE && $("terrain-mode").value==="real"){
   // Rio keeps the old DEM optional and starts after the first render.
   setTimeout(()=>{if(activeWorld==="rio")rebuildTerrain()},1200);
