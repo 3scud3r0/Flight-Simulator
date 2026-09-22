@@ -386,5 +386,5 @@ export function createWorld(THREE, scene, renderer) {
     }
   }
   return { sampleHeight, updateEnvironment, airports: AIRPORTS,
-    landmarks: LANDMARKS, sun, cloudMat, setRealTerrainEnabled };
+    landmarks: LANDMARKS, sun, cloudMat, sea, setRealTerrainEnabled };
 }
