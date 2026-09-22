@@ -53,7 +53,8 @@ export function createSceneryLayer(THREE,worldRoot,sampleHeight,{
   trunk:new THREE.BoxGeometry(1,1,1),
   broadleaf:new THREE.IcosahedronGeometry(1,1),
   evergreen:new THREE.ConeGeometry(1,1,7),
-  rock:new THREE.IcosahedronGeometry(1,0)
+  rock:new THREE.IcosahedronGeometry(1,0),
+  bulb:new THREE.SphereGeometry(1,6,4)
  };
  const textures=facadeTextures(THREE);
  const buildingMat=new THREE.MeshStandardMaterial({
@@ -63,6 +64,12 @@ export function createSceneryLayer(THREE,worldRoot,sampleHeight,{
  });
  const materials={
   building:buildingMat,
+  road:new THREE.MeshStandardMaterial({
+   color:0x293039,roughness:.97,metalness:0}),
+  lampPost:new THREE.MeshStandardMaterial({
+   color:0x727d86,roughness:.75,metalness:.35}),
+  lampBulb:new THREE.MeshBasicMaterial({
+   color:0xffdd9c,transparent:true,opacity:.02,toneMapped:false}),
   trunk:new THREE.MeshStandardMaterial({
    color:0x755c43,roughness:1}),
   foliage:new THREE.MeshStandardMaterial({
@@ -125,6 +132,24 @@ export function createSceneryLayer(THREE,worldRoot,sampleHeight,{
     dummy.scale.set(item.radius,item.height*.65,item.radius);
    },true);
   }
+  // A coherent city silhouette needs streets as well as tower silhouettes.
+  // Section surfaces are visual only; no collision plane is introduced.
+  instanced(group,plan.roads,geometries.building,materials.road,item=>{
+   dummy.position.set(item.x,item.y,item.z);
+   dummy.rotation.set(0,0,0);
+   dummy.scale.set(item.axis==="x"?item.length:item.width,
+    .20,item.axis==="z"?item.length:item.width);
+  });
+  instanced(group,plan.lamps,geometries.trunk,materials.lampPost,item=>{
+   dummy.position.set(item.x,item.y+item.height*.5,item.z);
+   dummy.rotation.set(0,0,0);
+   dummy.scale.set(.20,item.height,.20);
+  });
+  instanced(group,plan.lamps,geometries.bulb,materials.lampBulb,item=>{
+   dummy.position.set(item.x,item.y+item.height,item.z);
+   dummy.rotation.set(0,0,0);
+   dummy.scale.set(1.25,1.25,1.25);
+  });
   instanced(group,plan.rocks,geometries.rock,materials.rock,item=>{
    dummy.position.set(item.x,item.y+item.size*.3,item.z);
    dummy.rotation.set(0,0,0);
@@ -132,7 +157,7 @@ export function createSceneryLayer(THREE,worldRoot,sampleHeight,{
   },true);
   root.add(group);
   const objects=plan.buildings.length+plan.trees.length+
-   plan.rocks.length;
+   plan.rocks.length+plan.roads.length+plan.lamps.length;
   tiles.set(ix+":"+iz,{group,objects});
   count+=objects;
  }
@@ -170,8 +195,9 @@ export function createSceneryLayer(THREE,worldRoot,sampleHeight,{
  }
  function setDaylight(daylight){
   // Night-time window glow is bounded; the map itself remains neutral.
-  buildingMat.emissiveIntensity=
-   .035+.88*Math.pow(1-Math.max(0,Math.min(1,daylight)),2);
+  const night=Math.pow(1-Math.max(0,Math.min(1,daylight)),2);
+  buildingMat.emissiveIntensity=.035+.88*night;
+  materials.lampBulb.opacity=.02+.98*night;
  }
  function dispose(){
   disposed=true;
