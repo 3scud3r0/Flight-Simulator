@@ -112,6 +112,8 @@ try{
   return match&&Number(match[1])>=12;
  },null,{timeout:90000});
  await full.waitForTimeout(400);
+ assert.equal(await full.locator("#airport option").count(),4);
+ assert.equal(await full.locator("#aetheria-region option").count(),4);
  await fly(full,"aetheria-full.png");
  // Check the world moves and update loop has not frozen.
  await full.keyboard.down("Equal");
@@ -124,9 +126,9 @@ try{
  await full.screenshot({path:new URL("aetheria-cinematic.png",proof).pathname});
  await full.keyboard.press("u");
  assert.equal(await full.locator(".hud").isVisible(),true);
- await full.locator("#aetheria-region").selectOption("kharon");
+ await full.locator("#aetheria-region").selectOption("viridia");
  await full.waitForTimeout(1200);
- assert.equal(await full.locator("#aetheria-region").inputValue(),"kharon");
+ assert.equal(await full.locator("#aetheria-region").inputValue(),"viridia");
  await full.locator("#world-select").selectOption("rio");
  await full.waitForFunction(()=>document.querySelector("#world-select")
   ?.value==="rio",{timeout:20000});

@@ -1,48 +1,38 @@
-# Aetheria — Megamapa ficcional
+# Aetheria Compact — quatro regiões, quatro aeroportos
 
-> **Novos recursos 3D reais (v0.6 experimental):** os recursos CC0 importados, seu download local, SHA dos GLBs e limites visuais estão documentados em [ASSET_SOURCES.md](ASSET_SOURCES.md). Aetheria completa agora dispõe de modelos glTF reais por aeroporto e materiais PBR de solo/asfalto; a versão leve e o Rio permanecem separados. Não é um projeto AAA concluído.
+Aetheria deixou de ser o protótipo de **3.200 × 2.400 km e 60 pistas de baixo detalhe**. Agora é um cenário fictício e contínuo de **48 × 36 km**, com somente quatro regiões distintas e quatro pistas conectadas por voo direto. O Rio de Janeiro permanece uma opção independente.
 
+| Região | Aeroporto | Foco de cenário |
+|---|---|---|
+| Nova Íris | AE-01 Nova Íris Internacional | Terminal, hangares CC0, área urbanizada costeira, pista 2.900 m |
+| Auralis | AE-02 Auralis Costeiro | Ilha e baía tropical, vegetação, costa, pista 1.600 m |
+| Vértice | AE-03 Vale Vértice | Montanhas e rochas, vegetação alpina, pista 1.650 m |
+| Virídia | AE-04 Clareira Virídia | Selva, montanhas baixas, pista 1.150 m |
 
-Aetheria é **um segundo mundo**, isolado do Rio de Janeiro. É um mundo inteiramente inventado. Não reaproveita o terreno do Rio nem simula cidades reais. Não utiliza satélites, fotogrametria comercial, credenciais nem downloads de mapas externos **durante o voo**. A compilação da versão completa importa separadamente recursos CC0 de Kenney e Poly Haven para o pacote estático.
+**Os códigos AE são fictícios.** O mapa usa metros locais, não coordenadas GPS ou cartas de navegação.
 
-## Versão inicial jogável
+## O que mudou tecnicamente
 
-- **20 regiões** contínuas em um atlas de aproximadamente **3.200 × 2.400 km**; o terreno é amostrado de forma determinística a partir de uma semente.
-- **60 aeroportos fictícios** AE-01 a AE-60: 8 internacionais, 32 regionais e 20 locais especiais. Cada um recebe pista, marcações, luzes e volumes de terminais quando a aeronave se aproxima.
-- Regiões: Borealis, Skadia, Nørdalen, Vértice, Lúmina, Virídia, Miragem, Eón, Calíope, Nova Íris, Auralis, Pelágia, Tempestária, Ferrum, Neon Prime, Sahr, Helion, Obsidiana, Kharon e Aether.
-- Perfil de relevo por bioma: montanhas e geleiras, fiordes, savanas e florestas, ilha tropical e oceano, cânions, vulcão, desertos e bases polares. Fronteiras do relevo são suavizadas pela contribuição das duas regiões mais próximas.
-- Skylines e arquitetura procedural por perfil urbano, vegetação por instâncias nas áreas apropriadas, rochedos suspensos **decorativos** na região fantástica de Aether.
-- Voo Livre e Desafio Aéreo; instrumentos, aeronaves, teclado, controle e controles móveis permanecem utilizáveis. Records de desafio segregados por mundo.
-- Navegação global simplificada: todos os aeroportos no seletor, salto rápido para as 20 regiões e minimapa de abrangência continental.
-- O mundo fica em torno da aeronave por streaming; não são construídos os 7,68 milhões de km² ao mesmo tempo.
+O terreno completo usa blocos de **2,4 km**, em vez dos antigos blocos de 5,6 km; malha de **42 subdivisões por bloco** em desktop, 20 no celular e 14 no modo compatibilidade. O relevo muda de forma contínua nas divisas de biomas, com transição de aproximadamente 3,6 km, e cada aeroporto nivela também as duas cabeceiras e as laterais da pista. O limite de memória da versão completa continua sendo 25 blocos no desktop e 9 no celular.
 
-## Alternar mundos
+As pistas receberam taxiways, pátios, posições de estacionamento, marcações de cabeceira e luzes. A arquitetura e a natureza nas proximidades utilizam modelos **Kenney CC0 em glTF**, baixados e verificados durante a publicação, com mapas PBR do **Poly Haven CC0**. Os modelos originais e as licenças são descritos em [ASSET_SOURCES.md](ASSET_SOURCES.md). Nada disso significa importar cenários protegidos de jogos comerciais.
 
-No seletor **MUNDO / MAPA** ou na abertura, escolher **Rio de Janeiro** ou **Aetheria**. O Rio mantém seus três aeroportos e opções DEM/satélite. Aetheria não exibe opções de satélite do Rio.
+A **Aetheria leve** continua independente do módulo avançado: abre mesmo se o download do módulo completo falhar. O Rio conserva seus três aeroportos, sua física e seu relevo opcional. A tecla **U** mostra apenas a simulação, ocultando toda a HUD.
 
-URLs de entrada direta, quando GitHub Pages estiver publicado:
+## Acesso
 
 - Rio: `https://3scud3r0.github.io/Flight-Simulator/`
-- Aetheria: `https://3scud3r0.github.io/Flight-Simulator/?world=aetheria`
-- Aetheria leve: `https://3scud3r0.github.io/Flight-Simulator/?world=aetheria&safe=1`
-- Rio leve: `https://3scud3r0.github.io/Flight-Simulator/?safe=1`
+- Aetheria completa: `https://3scud3r0.github.io/Flight-Simulator/?world=aetheria`
+- Aetheria leve: `https://3scud3r0.github.io/Flight-Simulator/?world=aetheria-lite&safe=1`
 
-## Uso correto dos 180 algoritmos
-
-A biblioteca em `src/engine/` fornece 180 núcleos numerados. O mundo utiliza funções de geração fractal, erosão/forma geológica aproximada, distribuição de biomas, amostragem atmosférica, vento tridimensional, decisões de infraestrutura e materiais procedurais. A física e o desafio continuam integrados pelo loop de voo do simulador. O streaming impõe limites de 9 tiles no celular/compatibilidade e 25 no desktop; até um novo tile é gerado a cada cinco quadros. Geometria e materiais são liberados ao sair da região.
-
-**Não são executados todos os 180 algoritmos por quadro nem todos estão integrados a um efeito visual.** Várias funções são utilitários de preparação, geração, diagnóstico, áudio ou funções CPU que ainda precisariam de render passes WebGL, dados e testes de GPU. Executá-las sem necessidade tornaria o jogo instável. Aetheria é uma versão original procedural **jogável/experimental**, não conteúdo gráfico fotorrealista AAA já finalizado.
-
-## Limites e fidelidade
-
-As coordenadas AE são unidades fictícias locais em metros, não latitude/longitude WGS84. As pistas são ilustrativas, e suas distâncias não representam cartas aeronáuticas. A ilha suspensa é apenas visual e não entra no cálculo de colisão de terreno. Aproximações, turbulência e atmosfera são educativas: não certificadas nem adequadas à navegação. Os aeroportos distantes não têm edifícios renderizados até que a aeronave esteja perto. A tecnologia não requer armazenamento integral do mapa.
-
-## Testes
+## Testes e limites
 
 ```bash
 npm run check
 npm test
-npm run test:aetheria
+npm run test:browser
 ```
 
-`tests/aetheria.test.mjs` cobre os 20 domínios, 60 aeroportos, categoria das pistas, relevo, nível das cabeceiras, determinismo, vento e desafio; `tests/aetheria-renderer.test.mjs` cobre o limite de tiles, geração progressiva e descarte de recursos por renderizador simulado. A validação visual WebGL real e os testes de desempenho em diferentes GPUs ainda dependem de execução em navegador.
+O teste do navegador usa Chromium com WebGL: voa no Rio e nas duas versões de Aetheria, aguarda carregar modelos glTF reais, muda de região, testa a HUD, retorna ao Rio e simula indisponibilidade do módulo completo. A publicação só ocorre depois desse teste.
+
+**Isto é um protótipo de aviação com recursos 3D importados, não um jogo AAA.** O número de algoritmos não é uma medida de fidelidade visual. A versão compacta privilegia locais exploráveis em vez de enormes áreas vazias; ainda faltam estradas detalhadas, tráfego convincente, aeroportos de nível profissional, pós-processamento e revisão artística em diferentes GPUs.

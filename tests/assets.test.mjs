@@ -18,7 +18,7 @@ test("50 SHA-pinned imported original CC0 glTF models",()=>{
  }
  assert.equal(new Set(POLY_HAVEN_MATERIALS).size,4);
 });
-test("all 60 airports receive deterministic actual model plans",()=>{
+test("all four detailed airports receive deterministic real CC0 model plans",()=>{
  for(const airport of AETHERIA_AIRPORTS){
   const region=AETHERIA_REGIONS.find(x=>x.id===airport.regionId);
   const first=planAirportAssets(airport,region);

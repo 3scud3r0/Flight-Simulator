@@ -1,18 +1,19 @@
 /**
  * Scene placement for 50 reusable Kenney CC0 meshes, self-hosted at build time.
  * Models are created on approach, not at world initialization and not for every
- * one of the 60 airports. All GLB geometry/textures remain shared and cached.
+ * the nearby airfield. All GLB geometry/textures remain shared and cached.
  */
 import {KENNEY_MODELS} from "./asset-manifest.js";
 const URL_PREFIX=new URL("../assets/kenney/",import.meta.url);
 const key=(pack,name)=>pack+"/"+name;
 const CHOICES={
- city:["city-commercial/building-skyscraper-a",
-  "city-commercial/building-skyscraper-b",
-  "city-commercial/building-skyscraper-c",
-  "city-commercial/building-a",
+ city:["city-commercial/building-a",
   "city-commercial/building-d",
-  "city-commercial/building-h"],
+  "city-commercial/building-h",
+  "city-commercial/building-j",
+  "city-suburban/building-type-a",
+  "city-suburban/building-type-f",
+  "city-commercial/building-skyscraper-a"],
  suburban:["city-suburban/building-type-a",
   "city-suburban/building-type-f",
   "city-suburban/building-type-k"],
@@ -44,10 +45,10 @@ export function planAirportAssets(airport,region,{mobile=false}={}){
   /4294967296);
  const items=[],urban=URBAN.has(region.biome)||
   airport.category==="internacional";
- const full=!mobile,cityCount=urban?(full?26:9):0;
+ const full=!mobile,cityCount=urban?(full?80:14):0;
  const treeCount=TREE_BIOMES.has(region.biome)?
-  full?52:12:full?8:3;
- const rockCount=full?19:6;
+  full?100:24:full?80:15;
+ const rockCount=full?34:8;
  const heading=airport.heading*Math.PI/180;
  const forward={x:Math.sin(heading),z:-Math.cos(heading)};
  const right={x:Math.cos(heading),z:Math.sin(heading)};
@@ -67,17 +68,30 @@ export function planAirportAssets(airport,region,{mobile=false}={}){
     width:width*(.82+random()*.5)});
   }
  }
- append(CHOICES.hangars,mobile?2:4,450,1000,24,48);
+ // Park real CC0 hangars in an intentional row next to the apron,
+ // never scatter them randomly in the approach corridor.
+ const hangarCount=mobile?3:7;
+ for(let i=0;i<hangarCount;i++){
+  const offset=(i-(hangarCount-1)/2)*102;
+  const lateral=425+(i%2)*65;
+  items.push({
+   key:CHOICES.hangars[i%CHOICES.hangars.length],
+   x:airport.x+right.x*lateral+forward.x*offset,
+   z:airport.z+right.z*lateral+forward.z*offset,
+   yaw:heading,
+   height:24+(i%3)*4,width:42+(i%2)*12
+  });
+ }
  if(urban)append(region.biome==="industrial"?CHOICES.industrial:
   region.biome==="historic"?CHOICES.suburban:CHOICES.city,
-  cityCount,1050,full?3700:2450,region.biome==="megacity"?
-    150:region.biome==="futuristic"?160:43,45);
+  cityCount,520,full?2050:1450,region.biome==="megacity"?
+    86:region.biome==="futuristic"?160:43,45);
  if(treeCount)append(region.biome==="tropical"?
   [CHOICES.trees[5],CHOICES.trees[0]]:region.biome==="alpine"||
   region.biome==="polar"?[CHOICES.trees[3],CHOICES.trees[4]]:
-  CHOICES.trees,treeCount,900,full?3600:2500,18,13);
- append(CHOICES.rocks,rockCount,750,full?3100:1950,14,20);
- append(CHOICES.detail,full?12:3,250,850,7,4);
+  CHOICES.trees,treeCount,500,full?2200:1700,18,13);
+ append(CHOICES.rocks,rockCount,650,full?2100:1600,14,20);
+ append(CHOICES.detail,full?24:5,250,850,7,4);
  return items.slice(0,SLICE_MAX);
 }
 export function createAssetLibrary(THREE,worldRoot,sampleHeight,{mobile=false}={}){

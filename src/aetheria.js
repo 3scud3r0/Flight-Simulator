@@ -18,7 +18,7 @@ import {createAssetLibrary} from "./asset-library.js";
 
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
 const mix=(a,b,t)=>a+(b-a)*t;
-const CELL=5600;
+const CELL=2400;
 const COUNTRY_SEED=314159;
 /** Only the two closest domains contribute to height blending. */
 export function aetheriaBiome(x,z){
@@ -28,18 +28,18 @@ export function aetheriaBiome(x,z){
   if(d<da){b=a;db=da;a=r;da=d}
   else if(d<db){b=r;db=d}
  }
- // A smooth broad 80km transition; no square-grid terrain seams.
- const w=clamp(.5+(db-da)/160000);
+ // Local 3.6 km biome blend — never one color block per continent.
+ const w=clamp(.5+(db-da)/7200);
  return {primary:a,secondary:b??a,blend:w};
 }
 function domainHeight(region,x,z){
  const seed=region.seed;
- const broad=Generation.fractalBrownianMotion(x*.000010,z*.000010,
-  {seed,octaves:3})*230;
- const detail=Generation.ridgedMultifractal(x*.000025,z*.000025,
+ const broad=Generation.fractalBrownianMotion(x*.000045,z*.000045,
+  {seed,octaves:4})*175;
+ const detail=Generation.ridgedMultifractal(x*.000095,z*.000095,
   {seed:seed+21,octaves:4});
- const micro=Generation.fractalBrownianMotion(x*.00022,z*.00022,
-  {seed:seed+53,octaves:3})*27;
+ const micro=Generation.fractalBrownianMotion(x*.00048,z*.00048,
+  {seed:seed+53,octaves:2})*17;
  const d=Math.hypot(x-region.x,z-region.z);
  let elevation=region.elevation;
  switch(region.biome){
@@ -47,22 +47,26 @@ function domainHeight(region,x,z){
  case "glacial":elevation+=broad+detail*750;break;
  case "fjord":elevation+=broad*1.5+detail*920-
   Math.exp(-Math.abs(z-region.z)/12000)*350;break;
- case "alpine":elevation+=broad*2.2+detail*1700;break;
+ case "alpine":elevation+=broad*1.35+detail*1250;break;
  case "desert":elevation+=broad*.7+
   Math.sin(x*.00011+Math.sin(z*.000032))*48;break;
- case "jungle":elevation+=broad*.7+detail*310;break;
+ case "jungle":elevation+=broad*.65+detail*260;break;
  case "delta":elevation+=broad*.11+detail*38;break;
  case "highlands":elevation+=broad+detail*540;break;
  case "historic":case "megacity":case "industrial":
- case "futuristic":elevation+=broad*.3+detail*80;break;
+ case "futuristic":elevation+=broad*.15+detail*48;break;
  case "tropical":case "ocean":{
   // Large islands / lagoons; preserves ocean between many land masses.
-  const island=Math.max(0,Math.sin(x*.000027)+
-   Math.cos(z*.000033)+
-   Generation.fractalBrownianMotion(x*.000019,z*.000019,
-    {seed:seed+6,octaves:3})*1.2);
-  elevation=region.biome==="ocean"?-68:-22;
-  elevation+=island*island*(region.biome==="ocean"?52:94);
+  const island=Math.max(0,Math.sin(x*.00018)+
+   Math.cos(z*.00014)+
+   Generation.fractalBrownianMotion(x*.000065,z*.000065,
+    {seed:seed+6,octaves:3})*1.25);
+  elevation=region.biome==="ocean"?-68:-20;
+  elevation+=island*island*(region.biome==="ocean"?52:86);
+  if(region.id==="auralis"){
+   const d=Math.hypot(x-11500,z+8100);
+   elevation+=65*Math.exp(-Math.pow(d/3700,2));
+  }
   break;
  }
  case "storm":elevation+=broad*.32+detail*210;break;
@@ -92,12 +96,18 @@ export function sampleAetheriaHeight(x,z){
  const b=aetheriaBiome(x,z);
  let h=mix(domainHeight(b.secondary,x,z),
   domainHeight(b.primary,x,z),b.blend);
- const airport=aetheriaNearestAirport(x,z,6500);
+ const airport=aetheriaNearestAirport(x,z,5000);
  if(airport){
-  const dist=Math.hypot(x-airport.x,z-airport.z);
-  const t=clamp((dist-1050)/4400);
-  const smooth=t*t*(3-2*t);
-  h=mix(airport.elevation-1,h,smooth);
+  // The ENTIRE runway, thresholds and sides are level, not just
+  // a circular plateau at the airport reference point.
+  const heading=airport.heading*Math.PI/180;
+  const dx=x-airport.x,dz=z-airport.z;
+  const along=dx*Math.sin(heading)-dz*Math.cos(heading);
+  const lateral=dx*Math.cos(heading)+dz*Math.sin(heading);
+  const end=Math.max(0,Math.abs(along)-airport.runways[0].length/2-190);
+  const side=Math.max(0,Math.abs(lateral)-280);
+  const t=clamp(Math.hypot(end,side)/1550);
+  h=mix(airport.elevation-1,h,t*t*(3-2*t));
  }
  return clamp(h,-250,5200);
 }
@@ -129,7 +139,7 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
  scene.add(root);
  const tiles=new Map(),failed=new Set();
  const radius=compatibility?1:mobile?1:2;
- const subdivisions=compatibility?10:mobile?14:26;
+ const subdivisions=compatibility?14:mobile?20:42;
  // Reusable original 128px microtexture; no imagery API or downloads.
  // All terrain tiles share one GPU texture, avoiding per-tile allocations.
  const textureCanvas=document.createElement("canvas");
@@ -144,16 +154,17 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
    const n=Math.sin(col*91.77+row*37.63)*
     Math.cos(col*14.17-row*42.11);
    const v=Math.round(225+n*19);
-   texturePixels.data[i]=v;
-   texturePixels.data[i+1]=v;
-   texturePixels.data[i+2]=v;
+   // A subdued grass/soil albedo, not a dark gravel texture.
+   texturePixels.data[i]=Math.round(v*.71);
+   texturePixels.data[i+1]=Math.round(v*.92);
+   texturePixels.data[i+2]=Math.round(v*.68);
    texturePixels.data[i+3]=255;
   }
  textureContext.putImageData(texturePixels,0,0);
  const soilTexture=new THREE.CanvasTexture(textureCanvas);
  soilTexture.colorSpace=THREE.SRGBColorSpace;
  soilTexture.wrapS=soilTexture.wrapT=THREE.RepeatWrapping;
- soilTexture.repeat.set(16,16);
+ soilTexture.repeat.set(22,22);
  soilTexture.anisotropy=Math.min(4,
   renderer.capabilities.getMaxAnisotropy?.()||2);
  const material=new THREE.MeshStandardMaterial({
@@ -168,7 +179,6 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
  if(typeof window!=="undefined"&&typeof THREE.TextureLoader==="function"){
   const texLoader=new THREE.TextureLoader();
   for(const [type,file] of [
-   ["earth","gravel_ground_01_diff_1k.png"],
    ["sand","aerial_beach_01_diff_1k.png"],
    ["rock","rocks_ground_06_diff_1k.png"],
    ["asphalt","aerial_asphalt_01_diff_1k.png"]])
@@ -177,7 +187,7 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
       if(!active){texture.dispose();return}
       texture.colorSpace=THREE.SRGBColorSpace;
       texture.wrapS=texture.wrapT=THREE.RepeatWrapping;
-      texture.repeat.set(35,35);
+      texture.repeat.set(14,14);
       texture.anisotropy=Math.min(4,
        renderer.capabilities.getMaxAnisotropy?.()||2);
       const mat=groundMaterials.get(type);
@@ -197,7 +207,7 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
      texture=>{
       if(!active){texture.dispose();return}
       texture.wrapS=texture.wrapT=THREE.RepeatWrapping;
-      texture.repeat.set(35,35);
+      texture.repeat.set(14,14);
       texture.anisotropy=Math.min(4,
        renderer.capabilities.getMaxAnisotropy?.()||2);
       const mat=groundMaterials.get(type);
@@ -228,11 +238,11 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
   color:0xe9f0f4,transparent:true,opacity:.76,depthWrite:false,
   roughness:1});
  const cloudGeometry=new THREE.SphereGeometry(1,8,6);
- const cloudCount=compatibility?8:mobile?16:38;
+ const cloudCount=compatibility?8:mobile?13:22;
  const clouds=new THREE.InstancedMesh(cloudGeometry,cloudMat,cloudCount);
  const dummy=new THREE.Object3D();
  for(let i=0;i<cloudCount;i++){
-  const t=i*2.3999632297,rad=2500+Math.sqrt(i/cloudCount)*14500;
+  const t=i*2.3999632297,rad=1400+Math.sqrt(i/cloudCount)*7800;
   dummy.position.set(Math.cos(t)*rad,1700+(i*311)%1800,
    Math.sin(t)*rad);
   dummy.scale.set(220+(i*37)%240,54+(i*13)%70,120+(i*59)%180);
@@ -275,7 +285,8 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
     x*.00041,z*.00041,{seed:COUNTRY_SEED,octaves:2});
    // Albedo PBR already contains dark detail; avoid multiplying it by
    // a second dark biome tint (which made the entire city look black).
-   color.lerp(new THREE.Color(0xffffff),.65);
+   // Keep earthy greens; PBR gravel albedo made the coast look black.
+   color.lerp(new THREE.Color(0xffffff),.70);
    color.multiplyScalar(.96+slope*.07);
    verts.push(col/N*CELL,y,row/N*CELL);
    colors.push(color.r,color.g,color.b);
@@ -322,9 +333,8 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
     return(seed>>>0)/4294967296;};
   const urban=["megacity","futuristic","industrial","historic"].includes(
     region.biome)||airport.category==="internacional";
-  if(urban){
-    const count=compatibility?18:mobile?54:
-      region.biome==="megacity"||region.biome==="futuristic"?95:65;
+  if(urban&&!assets){
+    const count=compatibility?10:mobile?20:30;
     const palettes=region.biome==="futuristic"?
       [0x38405e,0x51577e,0x6c4c87,0x3f6581]:
       region.biome==="historic"?
@@ -337,11 +347,11 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
         emissiveIntensity:.38}),Math.ceil(count/palettes.length)));
     const sizes=new Int32Array(4);
     for(let i=0;i<count;i++){
-      const angle=random()*Math.PI*2,dist=3900+random()*8700;
+      const angle=random()*Math.PI*2,dist=1450+random()*3100;
       const x=airport.x+Math.cos(angle)*dist,
         z=airport.z+Math.sin(angle)*dist;
       // Keep runways and taxi approaches legible.
-      if(Math.abs(x-airport.x)<280&&Math.abs(z-airport.z)<3500)
+      if(Math.abs(x-airport.x)<340&&Math.abs(z-airport.z)<airport.runways[0].length/2+380)
         continue;
       const h=(region.biome==="megacity"||region.biome==="futuristic"?
         25+Math.pow(random(),1.9)*340:
@@ -435,8 +445,50 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
     surface+.55,airport.z+Math.sin(heading)*side*(rw.width/2-1));
    edge.rotation.y=angle;parent.add(edge);
   }
-  // Each biome creates its own ORIGINAL visual silhouette near airports.
-  // These are instanced meshes rather than hundreds of draw calls.
+  // Taxiway and paved apron connect the runway to imported CC0 hangars.
+  // Both follow the authored runway heading and share its elevation.
+  const right={x:Math.cos(heading),z:Math.sin(heading)};
+  const paved=new THREE.Group();
+  parent.add(paved);
+  const apron=new THREE.Mesh(new THREE.BoxGeometry(250,.65,410),
+    airportMat);
+  apron.rotation.y=angle;
+  apron.position.set(airport.x+right.x*205,surface,
+    airport.z+right.z*205);
+  paved.add(apron);
+  const taxi=new THREE.Mesh(new THREE.BoxGeometry(176,.65,24),
+    airportMat);
+  taxi.rotation.y=angle;
+  taxi.position.set(airport.x+right.x*101,surface,
+    airport.z+right.z*101);
+  paved.add(taxi);
+  const taxiLine=new THREE.Mesh(new THREE.BoxGeometry(175,.055,.45),
+    litMat);
+  taxiLine.rotation.y=angle;
+  taxiLine.position.set(taxi.position.x,surface+.37,
+    taxi.position.z);
+  paved.add(taxiLine);
+  for(const d of [-160,-80,0,80,160]){
+   const stand=new THREE.Mesh(new THREE.BoxGeometry(
+    45,.055,.55),stripeMat);
+   stand.rotation.y=angle;
+   stand.position.set(apron.position.x+f.x*d,surface+.38,
+    apron.position.z+f.z*d);
+   paved.add(stand);
+  }
+  // Threshold bars read clearly from the air even before GLBs arrive.
+  for(const d of [-rw.length/2+44,rw.length/2-44]){
+   for(const lateral of [-rw.width*.3,-rw.width*.15,
+    rw.width*.15,rw.width*.3]){
+    const bar=new THREE.Mesh(new THREE.BoxGeometry(
+     1.8,.055,26),stripeMat);
+    bar.rotation.y=angle;
+    bar.position.set(airport.x+f.x*d+right.x*lateral,
+     surface+.54,airport.z+f.z*d+right.z*lateral);
+    paved.add(bar);
+   }
+  }
+  // Far buildings now stay within the streamed 6 km scenery radius.
   decorateAirport(airport,parent,surface);
   // GPU instance batches instead of one draw call per edge light.
   const count=Math.ceil(rw.length/110);
@@ -451,7 +503,7 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
    dummy.updateMatrix();lights.setMatrixAt(i*2+j,dummy.matrix);
   }
   lights.instanceMatrix.needsUpdate=true;parent.add(lights);
-  for(let k=0;k<(airport.category==="internacional"?9:3);k++){
+  for(let k=0;k<(assets?0:airport.category==="internacional"?9:3);k++){
    const h=8+(k*13)%21;
    const terminal=new THREE.Mesh(new THREE.BoxGeometry(
     20+(k%3)*10,h,18+(k%4)*8),terminalMat);

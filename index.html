@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#06111f">
-  <meta name="description" content="Flight Simulator: escolha o Rio de Janeiro ou Aetheria, com 20 regiões e 60 aeroportos fictícios. Duas opções de desempenho.">
+  <meta name="description" content="Flight Simulator: escolha o Rio de Janeiro ou Aetheria, com quatro regiões próximas e quatro aeroportos bem construídos. Duas opções de desempenho.">
   <title>FLIGHT SIMULATOR — Rio de Janeiro &amp; Aetheria</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="stylesheet" href="./styles.css">
@@ -38,9 +38,9 @@
     <div id="world-info" role="status" aria-live="polite" class="world-info">Rio de Janeiro · 3 aeroportos · relevo opcional</div>
     <div id="aetheria-controls" hidden>
       <label for="aetheria-region">REGIÃO DE AETHERIA · IR ATÉ</label>
-      <select id="aetheria-region" aria-label="Região do megamapa">
+      <select id="aetheria-region" aria-label="Região do cenário compacto">
       </select>
-      <p class="world-hint">20 regiões interligadas · 60 aeroportos fictícios · superfície contínua · sem downloads externos.</p>
+      <p class="world-hint">48 × 36 km · quatro regiões · quatro aeroportos · texturas PBR e modelos CC0 na versão completa.</p>
     </div>
     <label for="game-mode">MODO DE JOGO</label>
     <select id="game-mode">
@@ -157,8 +157,8 @@
       <div class="welcome-overline"><span class="live-dot"></span> SEU MUNDO. SUA AERONAVE. SEU VOO.</div>
       <div class="welcome-symbol">✦ <span>FLIGHT / SIMULATOR</span> ✦</div>
       <h1 id="welcome-title">FLIGHT SIMULATOR</h1>
-      <p class="welcome-tagline">DOS AEROPORTOS DO RIO A UM PLANETA INTEIRO.</p>
-      <p id="welcome-desc">Escolha o cenário e o desempenho antes de decolar. Explore o Rio original ou atravesse Aetheria: 20 regiões e 60 aeroportos fictícios em um único mundo contínuo.</p>
+      <p class="welcome-tagline">DO RIO A UM NOVO LUGAR PARA VOAR.</p>
+      <p id="welcome-desc">Escolha o cenário e o desempenho antes de decolar. Explore o Rio original ou atravesse Aetheria: quatro regiões próximas e quatro aeroportos em um cenário compacto de 48 × 36 km.</p>
       <label for="welcome-world" class="world-welcome-label">01 / SELECIONE SEU MUNDO</label>
       <select id="welcome-world" class="world-welcome-select">
         <option value="rio">RIO DE JANEIRO · CENÁRIO ORIGINAL</option>
@@ -175,13 +175,13 @@
         <button type="button" class="world-choice" data-world="aetheria" aria-pressed="false">
           <span class="world-choice-art aetheria-art" aria-hidden="true"><span>Æ</span></span>
           <span class="world-choice-copy"><strong>AETHERIA COMPLETA</strong>
-            <small>20 regiões · 60 aeroportos · efeitos avançados</small>
+            <small>48 × 36 km · 4 aeroportos · modelos 3D e materiais PBR</small>
             <em>02 / MÁXIMA QUALIDADE</em></span>
         </button>
         <button type="button" class="world-choice" data-world="aetheria-lite" aria-pressed="false">
           <span class="world-choice-art lite-art" aria-hidden="true"><span>◈</span></span>
           <span class="world-choice-copy"><strong>AETHERIA LEVE</strong>
-            <small>O mesmo universo · 60 aeroportos · inicialização protegida</small>
+            <small>O mesmo cenário compacto · 4 aeroportos · inicialização protegida</small>
             <em>03 / MODO LEVE</em></span>
         </button>
       </div>
