@@ -11,6 +11,7 @@ import {
   AETHERIA_SIZE,aetheriaRegionAt
 } from "./legacy/aetheria-data.js";
 import { createCourse, createChallenge, stepChallenge, RING_COUNT } from "./challenge.js";
+import { createAuroraCourse } from "./aurora-course.js";
 import { createCourseVisual } from "./course-renderer.js";
 import { readGamepad, chooseGamepad } from "./gamepad.js";
 import { createRealTerrain } from "./legacy/real-terrain.js";
@@ -409,7 +410,8 @@ function begin(runway = false, requestedMode = $("game-mode").value) {
   $("result-overlay").classList.add("hidden");
   spawn(runway);
   if (mode === "challenge") {
-    const rings = createCourse(flight, terrainHeight);
+    const rings = activeWorld==="aurora"?
+      createAuroraCourse(flight,terrainHeight):createCourse(flight,terrainHeight);
     challenge = createChallenge(rings);
     courseVisual = createCourseVisual(THREE, scene, rings);
     ringResults = [];
@@ -422,7 +424,11 @@ function begin(runway = false, requestedMode = $("game-mode").value) {
   $("mobile-menu").setAttribute("aria-expanded", "false");
   $("pause-name").textContent = "PAUSAR";
   $("flight-status").textContent = mode === "challenge"
-    ? "DESAFIO AÉREO" : runway ? "PRONTO PARA DECOLAR" : "EM VOO";
+    ? activeWorld==="aurora"?"TRILHA DE AURORA":"DESAFIO AÉREO" :
+      runway ? "PRONTO PARA DECOLAR" : "EM VOO";
+  document.querySelector(".challenge-kicker").textContent=
+    activeWorld==="aurora"?"✦ ILHAS DE AURORA · TRILHA DOS MARCOS":
+      "◎ FLIGHT SIMULATOR · DESAFIO DE ARGOLAS";
 }
 function pollController() {
   const enabled = $("gamepad-enabled").checked;
@@ -834,7 +840,8 @@ function updateHud() {
   if (flight.onGround && flight.speed > 0 && !flight.damaged) {
     $("flight-status").textContent = "ROLAGEM NO SOLO";
   } else if (!paused && !flight.damaged) {
-    $("flight-status").textContent = challenge ? "DESAFIO AÉREO" : "EM VOO";
+    $("flight-status").textContent = challenge ?
+      activeWorld==="aurora"?"TRILHA DE AURORA":"DESAFIO AÉREO" : "EM VOO";
   }
 }
 function resize() {
@@ -1120,6 +1127,12 @@ const requestedWorld=new URLSearchParams(location.search).get("world");
 if(["aurora","aetheria","aetheria-lite"].includes(requestedWorld)||!requestedWorld){
   setTimeout(()=>changeWorld(
     SAFE_MODE&&requestedWorld==="aetheria"?"aetheria-lite":requestedWorld||"aurora"),200);
+}else if(requestedWorld==="rio"){
+  $("world-select").value=$("welcome-world").value="rio";
+  syncWorldChoices("rio");
+  $("world-info").textContent="Rio de Janeiro · 3 aeroportos · relevo real opcional";
+  if(!SAFE_MODE && $("terrain-mode").value==="real")
+    setTimeout(()=>{if(activeWorld==="rio")rebuildTerrain()},1200);
 }else if(!SAFE_MODE && $("terrain-mode").value==="real"){
   // Rio keeps the old DEM optional and starts after the first render.
   setTimeout(()=>{if(activeWorld==="rio")rebuildTerrain()},1200);

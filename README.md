@@ -1,6 +1,6 @@
 # Flight Simulator — Ilhas de Aurora
 
-**Aurora é o mundo principal.** Um arquipélago fictício original de 12 × 10 km com cinco ilhas, aeródromo costeiro AU-01, Vila da Enseada, Ponte dos Arcos, Farol do Leste e vegetação instanciada. Voo livre e desafio de argolas funcionam com a pilotagem refinada, câmeras, controles por teclado, toque e gamepad. A altura usada pelo avião e pela malha visual vem da mesma função determinística; a pista é nivelada em toda a extensão.
+**Aurora é o mundo principal.** Um arquipélago fictício original de 12 × 10 km com cinco ilhas, aeródromo costeiro AU-01, Vila da Enseada, Ponte dos Arcos, Farol do Leste e vegetação instanciada. Voo livre e a Trilha dos Marcos (14 argolas seguindo farol, ponte e vila) funcionam com a pilotagem refinada, câmeras, controles por teclado, toque e gamepad. A altura usada pelo avião e pela malha visual vem da mesma função determinística; a pista é nivelada em toda a extensão.
 
 **Jogar:** https://3scud3r0.github.io/Flight-Simulator/?world=aurora (após a publicação da branch). **Localmente:** `python3 -m http.server 8000` e abra `http://localhost:8000/?world=aurora`. A biblioteca Three.js é fornecida pelo workflow de publicação; em desenvolvimento sem `vendor/`, o navegador tenta CDNs.
 
