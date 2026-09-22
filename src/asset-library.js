@@ -7,12 +7,13 @@ import {KENNEY_MODELS} from "./asset-manifest.js";
 const URL_PREFIX=new URL("../assets/kenney/",import.meta.url);
 const key=(pack,name)=>pack+"/"+name;
 const CHOICES={
- city:["city-commercial/building-skyscraper-a",
-  "city-commercial/building-skyscraper-b",
-  "city-commercial/building-skyscraper-c",
-  "city-commercial/building-a",
+ city:["city-commercial/building-a",
   "city-commercial/building-d",
-  "city-commercial/building-h"],
+  "city-commercial/building-h",
+  "city-commercial/building-j",
+  "city-suburban/building-type-a",
+  "city-suburban/building-type-f",
+  "city-commercial/building-skyscraper-a"],
  suburban:["city-suburban/building-type-a",
   "city-suburban/building-type-f",
   "city-suburban/building-type-k"],
@@ -46,7 +47,7 @@ export function planAirportAssets(airport,region,{mobile=false}={}){
   airport.category==="internacional";
  const full=!mobile,cityCount=urban?(full?64:12):0;
  const treeCount=TREE_BIOMES.has(region.biome)?
-  full?100:24:full?18:4;
+  full?100:24:full?65:10;
  const rockCount=full?34:8;
  const heading=airport.heading*Math.PI/180;
  const forward={x:Math.sin(heading),z:-Math.cos(heading)};
@@ -70,8 +71,8 @@ export function planAirportAssets(airport,region,{mobile=false}={}){
  append(CHOICES.hangars,mobile?3:7,450,1000,24,48);
  if(urban)append(region.biome==="industrial"?CHOICES.industrial:
   region.biome==="historic"?CHOICES.suburban:CHOICES.city,
-  cityCount,1050,full?3600:2200,region.biome==="megacity"?
-    150:region.biome==="futuristic"?160:43,45);
+  cityCount,850,full?3300:2100,region.biome==="megacity"?
+    86:region.biome==="futuristic"?160:43,45);
  if(treeCount)append(region.biome==="tropical"?
   [CHOICES.trees[5],CHOICES.trees[0]]:region.biome==="alpine"||
   region.biome==="polar"?[CHOICES.trees[3],CHOICES.trees[4]]:
