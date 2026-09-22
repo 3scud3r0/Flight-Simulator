@@ -69,12 +69,12 @@ const HILLS = [
 ].map(([lat, lon, h, sx, sz]) => ({ ...geo(lat, lon), h, sx, sz }));
 export function sampleHeight(x, z) {
   const { lat, lon } = toGeo(x, z);
-  if (!isLand(x, z)) return -7;
   const airport = AIRPORTS.find(a => {
     const p = geo(a.lat, a.lon);
     return Math.hypot(x - p.x, z - p.z) < (a.id === "SBGL" ? 2500 : a.id === "SBRJ" ? 950 : 650);
   });
   if (airport) return airport.elevation - 0.9;
+  if (!isLand(x, z)) return -7;
   let h = 3.5 + 2 * Math.sin(x / 800) * Math.cos(z / 530);
   for (const peak of HILLS) {
     const dx = (x - peak.x) / peak.sx;
