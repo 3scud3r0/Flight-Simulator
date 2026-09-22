@@ -118,6 +118,9 @@ try{
   const count=Number(info.match(/(\d+) detalhes/)?.[1]||0);
   return count>0;
  },null,{timeout:90000});
+ await full.waitForFunction(()=>(
+  document.querySelector("#world-info")?.textContent||""
+ ).includes("terminal autoral"),null,{timeout:20000});
  await full.waitForTimeout(400);
  assert.equal(await full.locator("#airport option").count(),4);
  assert.equal(await full.locator("#aetheria-region option").count(),4);
