@@ -1,10 +1,10 @@
 # RIO FLIGHT ✦
 
-**Simulador de voo 3D, gratuito e executado integralmente no navegador.** O primeiro cenário é uma representação artística e navegável do Rio de Janeiro.
+**Simulador de voo 3D para navegador.** O Rio de Janeiro pode utilizar DEM verdadeiro + imagens orbitais quando o serviço responde; sem esses dados, há um cenário artístico de reserva. Fotogrametria urbana real ainda não está incluída.
 
 **Jogar:** https://3scud3r0.github.io/Flight-Simulator/ (a publicação depende de ativar o GitHub Pages em *Settings → Pages → Source: GitHub Actions*; o workflow está versionado em `.github/workflows/pages.yml`).
 
-> **Escopo da versão 0.2:** protótipo jogável. A malha geográfica, o modelo de aeronave e a aerodinâmica são aproximados. Não é um simulador profissional, não reproduz procedimentos ou cartas vigentes e não serve para treinamento, planejamento ou navegação reais.
+> **Escopo da versão 0.3.1:** protótipo experimental, não certificado. O modelo 6-DOF é uma aproximação sem validação por dados de ensaio. Altitudes, cartas, cenários e aeronaves não servem para navegação, treinamento ou planejamento real.
 
 ## Funcionalidades implementadas
 
@@ -15,12 +15,25 @@
 - Voo 3D com câmeras externa, cabine aproximada e torre; iluminação dinâmica de amanhecer a anoitecer, nuvens e névoa.
 - Três aeronaves **inspiradas** em aviação geral, turboélice regional e jato comercial; são modelos 3D construídos no código, não réplicas de fabricantes.
 - Três aeroportos simplificados: Santos Dumont (SBRJ), Galeão (SBGL) e Jacarepaguá (SBJR), com pistas, faixas, pátios e sinalização ilustrativa.
-- Cenário procedural de ~63 × 63 km: litoral, montanhas, Baía de Guanabara aproximada, prédios instanciados, Pão de Açúcar e Cristo Redentor estilizados.
-- Texturas geradas localmente pela própria aplicação no navegador: solo, água, areia, concreto e asfalto, até **2048 × 2048 pixels** em computadores e até **1024 × 1024** em dispositivos móveis com ponteiro tátil, respeitando o limite da GPU. Não dependem de conta, chave de API ou downloads de fotografias de terceiros. Três.js e as fontes são distribuídos por CDN.
+- Terreno real opcional por tiles Mapzen Terrarium carregados gradualmente; imagens orbitais Sentinel-2 EOX (uso não comercial sob a licença do provedor) ou MapTiler com chave pública própria. Quando a rede falha, o terreno artístico de reserva continua disponível. Não é fotogrametria.
+- Texturas da cena de reserva sintetizadas localmente em **512 × 512** no computador, **256 × 256** no celular e **128 × 128** no Modo Compatibilidade. Imagens reais são baixadas progressivamente em blocos pequenos e podem não estar disponíveis em redes restritas. Three.js e fontes usam serviços externos.
 - Física determinística em passo fixo, gravidade, densidade atmosférica, sustentação, arrasto, potência, ângulo de ataque, perda de sustentação, rolagem, arfagem, guinada, vento lateral, flaps, trem, colisão simplificada com o terreno e frenagem em solo. **O impulso de pontuação altera a aceleração somente no modo arcade**, sem ser apresentado como física aeronáutica real.
 - Instrumentos: velocidade em nós, altitude em pés, razão vertical, proa, manete, configuração e destino; minimapa e rumos.
 - Controles de teclado e toque; áudio opcional sintetizado localmente; resolução ajustável, pausa, reinício, decolagem da pista.
 - Testes automatizados sem dependências de desenvolvimento e workflow de publicação.
+
+## Carregamento e Modo Compatibilidade
+
+A versão 0.3.1 prioriza a primeira imagem e a resposta dos botões. O terreno sintético inicial foi reduzido de 300 × 300 para 96 × 96 subdivisões em desktop, 64 × 64 no celular e 32 × 32 no Modo Compatibilidade. A geração de textura também foi reduzida, o número de edifícios/nuvens foi limitado e o shader de oceano agora só é criado ao selecionar **Gráficos → Alta qualidade** em computador.
+
+A elevação real não bloqueia a inicialização: o jogo solicita blocos somente após desenhar o cenário e inicia com até nove tiles próximos, com no máximo dois downloads simultâneos em desktop e um no celular. As imagens satelitais carregam separadamente das alturas; requisições com problemas têm timeout e a cena de reserva permanece disponível quando não há DEM suficiente.
+
+**Para dispositivos lentos ou tela de carregamento**, abra:
+https://3scud3r0.github.io/Flight-Simulator/?safe=1
+
+Esse endereço desativa terreno remoto e shaders opcionais, reduz geometria e texturas e usa a física clássica. Ainda requer WebGL e conexão com pelo menos um CDN do Three.js. Há também um link permanente no menu inicial para entrar no Modo Compatibilidade.
+
+**Se a URL mostrar 404**, não é desempenho: o GitHub Pages ainda pode precisar ser ativado em Settings → Pages → GitHub Actions e o workflow precisa terminar com sucesso. Veja Actions para erros. Não confunda ausência de publicação com falha da aplicação.
 
 ## Executar localmente
 
@@ -39,8 +52,8 @@ Abra http://localhost:8000. É necessária uma conexão à internet para carrega
 Com Node.js 20+:
 
 ```bash
-npm run check   # verifica a sintaxe dos três módulos JS
-npm test        # executa a suíte node:test de física e geografia
+npm run check   # verifica a sintaxe de todos os módulos JS
+npm test        # executa testes node:test de física, geografia, controle e desafio
 ```
 
 ## Controles
