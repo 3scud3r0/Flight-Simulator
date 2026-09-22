@@ -273,7 +273,7 @@ function spawn(runway = false) {
     options = { ...panoramic, y: 780, heading: rad(65) };
   } else {
     options = activeWorld==="aetheria"?
-      {x:p.x-850,z:p.z+850,y:airport.elevation+410,
+      {x:p.x-650,z:p.z+650,y:airport.elevation+255,
        heading:rad(airport.heading)}:
       {x:p.x-1900,z:p.z+2200,
        y:Math.max(850,airport.elevation+650),
