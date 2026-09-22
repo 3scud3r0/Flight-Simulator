@@ -14,6 +14,7 @@ import {
 import * as Generation from "./engine/generation.js";
 import * as Weather from "./engine/weather.js";
 import * as Infrastructure from "./engine/infrastructure.js";
+import {createAssetLibrary} from "./asset-library.js";
 
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
 const mix=(a,b,t)=>a+(b-a)*t;
@@ -168,6 +169,8 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
  let airportGroup=new THREE.Group();airportGroup.name="Aetheria_Active_Airport";
  root.add(airportGroup);
  const nature=new THREE.Group();root.add(nature);
+ const assets=typeof window==="undefined"?null:
+  createAssetLibrary(THREE,root,sampleAetheriaHeight,{mobile});
  const cloudMat=new THREE.MeshStandardMaterial({
   color:0xe9f0f4,transparent:true,opacity:.76,depthWrite:false,
   roughness:1});
@@ -395,6 +398,11 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
     airport.z+Math.floor(k/3)*50);parent.add(terminal);
   }
   airportGroup=parent;
+  if(assets){
+   const region=AETHERIA_REGIONS.find(r=>r.id===airport.regionId);
+   if(region)assets.place(airport,region).catch(error=>
+     console.warn("[Aetheria] CC0 scenery failed",error));
+  }
  }
  function updateEnvironment(hour,weather,dt){
   seconds+=Math.max(0,dt);
@@ -438,15 +446,18 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
    if((near?.id||null)!==lastAirport){
     lastAirport=near?.id||null;
     if(near)airportMesh(near);
-    else if(airportGroup){disposeGroup(THREE,airportGroup,false);
+    else if(airportGroup){assets?.reset();
+     disposeGroup(THREE,airportGroup,false);
      airportGroup=new THREE.Group();root.add(airportGroup)}
    }
   }
   status="Aetheria · "+(currentRegion?.name||"Mundo")+
-    " · "+tiles.size+"/"+((radius*2+1)**2)+" blocos";
+    " · "+tiles.size+"/"+((radius*2+1)**2)+" blocos"+
+    (assets?" · "+assets.count+" objetos CC0":"");
  }
  function dispose(){
   active=false;clearTiles();
+  assets?.dispose();
   disposeGroup(THREE,airportGroup);
   root.remove(sea);sea.geometry.dispose();
   disposeGroup(THREE,nature);
@@ -463,6 +474,8 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
   get region(){return currentRegion},
   get tileCount(){return tiles.size},
   get status(){return status},
-  get tileLimit(){return (radius*2+1)**2}
+  get tileLimit(){return (radius*2+1)**2},
+  get assetCount(){return assets?.count??0},
+  get uniqueAssets(){return assets?.unique??0}
  };
 }
