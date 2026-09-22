@@ -54,12 +54,26 @@ export function bilinear(grid, size, u, v) {
     grid[y1 * size + x1] * fx) * fy;
 }
 
-function loadImage(url) {
+function loadImage(url, timeoutMs = 9000) {
   return new Promise((resolve, reject) => {
     const image = new Image();
+    let settled = false;
+    const finish = (error) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      image.onload = image.onerror = null;
+      if (error) reject(error);
+      else resolve(image);
+    };
+    const timeout = setTimeout(() => {
+      finish(new Error("Tile timed out: " + url.split("?")[0]));
+      image.src = "";
+    }, timeoutMs);
     image.crossOrigin = "anonymous";
-    image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error("Tile unavailable: " + url.split("?")[0]));
+    image.onload = () => finish(null);
+    image.onerror = () =>
+      finish(new Error("Tile unavailable: " + url.split("?")[0]));
     image.src = url;
   });
 }
