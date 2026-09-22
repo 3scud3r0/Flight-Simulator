@@ -134,7 +134,7 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
  sea.rotation.x=-Math.PI/2;sea.position.y=-2.5;
  sea.receiveShadow=false;sea.name="Aetheria_Local_Ocean";
  root.add(sea);
- const airportGroup=new THREE.Group();airportGroup.name="Aetheria_Active_Airport";
+ let airportGroup=new THREE.Group();airportGroup.name="Aetheria_Active_Airport";
  root.add(airportGroup);
  const nature=new THREE.Group();root.add(nature);
  const cloudMat=new THREE.MeshStandardMaterial({
@@ -316,7 +316,7 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
   active=false;clearTiles();
   disposeGroup(THREE,airportGroup);
   root.remove(sea);sea.geometry.dispose();
-  root.remove(nature);clouds.geometry.dispose();
+  disposeGroup(THREE,nature);
   disposeGroup(THREE,root);
   waterMaterial.dispose();material.dispose();airportMat.dispose();
   stripeMat.dispose();terminalMat.dispose();redMat.dispose();
