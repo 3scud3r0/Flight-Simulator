@@ -17,6 +17,7 @@ import * as Infrastructure from "./engine/infrastructure.js";
 import {createAssetLibrary} from "./asset-library.js";
 import {createSceneryLayer} from "./scenery-renderer.js";
 import {terrainSubdivisions} from "./terrain-detail.js";
+import {createAirportSignature} from "./airport-signature.js";
 
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
 const mix=(a,b,t)=>a+(b-a)*t;
@@ -243,15 +244,25 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
   roughness:1});
  const cloudGeometry=new THREE.SphereGeometry(1,8,6);
  const cloudCount=compatibility?8:mobile?13:22;
- const clouds=new THREE.InstancedMesh(cloudGeometry,cloudMat,cloudCount);
+ const cloudPuffs=compatibility?2:mobile?3:5;
+ const clouds=new THREE.InstancedMesh(cloudGeometry,cloudMat,
+  cloudCount*cloudPuffs);
  const dummy=new THREE.Object3D();
  for(let i=0;i<cloudCount;i++){
   const t=i*2.3999632297,rad=1400+Math.sqrt(i/cloudCount)*7800;
-  dummy.position.set(Math.cos(t)*rad,1700+(i*311)%1800,
-   Math.sin(t)*rad);
-  dummy.scale.set(220+(i*37)%240,54+(i*13)%70,120+(i*59)%180);
-  dummy.rotation.set(0,t,0);dummy.updateMatrix();
-  clouds.setMatrixAt(i,dummy.matrix);
+  const baseX=Math.cos(t)*rad,baseZ=Math.sin(t)*rad;
+  const baseY=1700+(i*311)%1800;
+  for(let puff=0;puff<cloudPuffs;puff++){
+   const a=puff*2.3999632297+t;
+   const offset=puff===0?0:110+((i*31+puff*53)%130);
+   const taper=puff===0?1.25:.72+(puff%3)*.12;
+   dummy.position.set(baseX+Math.cos(a)*offset,
+    baseY+(puff%3)*48,baseZ+Math.sin(a)*offset);
+   dummy.scale.set((170+(i*37)%130)*taper,
+    (95+(i*13)%80)*taper,(160+(i*59)%140)*taper);
+   dummy.rotation.set(0,a,0);dummy.updateMatrix();
+   clouds.setMatrixAt(i*cloudPuffs+puff,dummy.matrix);
+  }
  }
  clouds.instanceMatrix.needsUpdate=true;clouds.frustumCulled=false;
  nature.add(clouds);
@@ -270,6 +281,7 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
  let buildCounter=0,status="Gerando terreno ficcional…",currentRegion=null;
  let active=true,seconds=0,lastShadow=0;
  const airports=AETHERIA_AIRPORTS,landmarks=AETHERIA_LANDMARKS;
+ let airportSignature=null;
  function makeTile(ix,iz,detail=subdivisions){
   const key=ix+":"+iz;if(tiles.has(key))return;
   const baseX=ix*CELL,baseZ=iz*CELL;
@@ -445,6 +457,7 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
   }
  }
  function airportMesh(airport){
+  airportSignature?.dispose();airportSignature=null;
   disposeGroup(THREE,airportGroup,false);
   // The group itself is kept attached; disposeGroup removes all children.
   // Create a fresh child group so scene ownership stays explicit.
@@ -536,6 +549,8 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
     airport.z+Math.floor(k/3)*50);parent.add(terminal);
   }
   airportGroup=parent;
+  airportSignature=createAirportSignature(THREE,parent,airport,
+   {mobile,compatibility});
   if(assets){
    const region=AETHERIA_REGIONS.find(r=>r.id===airport.regionId);
    if(region)assets.place(airport,region).catch(error=>
@@ -551,6 +566,7 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
   renderer.toneMappingExposure=.37+daylight*.87;
   runwayGlow.opacity=daylight<.22?.95:.03;
   scenery.setDaylight(daylight);
+  airportSignature?.setDaylight(daylight);
   litMat.color.setRGB(.18+(1-daylight)*.82,
     .20+(1-daylight)*.81,.18+(1-daylight)*.77);
  }
@@ -594,6 +610,7 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
     lastAirport=near?.id||null;
     if(near)airportMesh(near);
     else if(airportGroup){assets?.reset();
+     airportSignature?.dispose();airportSignature=null;
      disposeGroup(THREE,airportGroup,false);
      airportGroup=new THREE.Group();root.add(airportGroup)}
    }
@@ -607,6 +624,7 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
  function dispose(){
   active=false;clearTiles();
   scenery.dispose();
+  airportSignature?.dispose();airportSignature=null;
   assets?.dispose();
   disposeGroup(THREE,airportGroup);
   root.remove(sea);sea.geometry.dispose();
