@@ -28,6 +28,10 @@ full Aetheria renderer.
   where Canvas 2D is available, locally generated window/albedo textures.
   Each tile uses a few bounded GPU batches rather than one draw call per
   building or tree; its instance buffers are released on eviction.
+- **Nova Íris coastline:** the fictional megacity lowland now transitions
+  into locally authored open water with a smooth, warped shoreline; the
+  original airport-leveling sampler remains unchanged. This is an original
+  stylized peninsula, not DEM or photographic Rio.
 - **Airport signature pass:** region-specific, procedural concourses, glass
   terminal frontage, roof articulation, passenger bridges and control towers
   are authored in runway-local coordinates at each of four airfields, and
@@ -48,7 +52,8 @@ full Aetheria renderer.
 `src/scenery-plan.js` is dependency-free with respect to Three.js and accepts
 an injected elevation sampler. `src/scenery-renderer.js` owns only Three.js
 objects. `src/terrain-detail.js` is a pure LOD policy. `src/airport-signature.js`
-provides runway-local authored airport proxies. The adapter in
+provides runway-local authored airport proxies. `src/coastline.js` provides
+an authored, continuous megacity shoreline. The adapter in
 `src/aetheria.js` connects all three to the existing update and disposal
 lifecycle.
 
