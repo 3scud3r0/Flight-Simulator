@@ -21,7 +21,7 @@ export function simplex2(x,y,seed=1){
 }
 export function fractalBrownianMotion(x,y,{octaves=6,lacunarity=2,gain=.5,seed=1}={}){
  let sum=0,amp=1,freq=1,norm=0;
- for(let i=0;i<clamp(octaves,1,12);i++){sum+=perlin2(x*freq,y*freq,seed+i*37)*amp;norm+=amp;freq*=lacunarity;amp*=gain}
+ for(let i=0;i<Math.floor(clamp(octaves,1,12));i++){sum+=perlin2(x*freq,y*freq,seed+i*37)*amp;norm+=amp;freq*=lacunarity;amp*=gain}
  return sum/Math.max(norm,1e-9);
 }
 export function ridgedMultifractal(x,y,{octaves=6,seed=1}={}){
@@ -41,7 +41,7 @@ export function tectonicUplift(x,y,plates,{collisionWidth=.13}={}){
  let best=null,d1=Infinity,second=null,d2=Infinity;
  for(const p of plates){const d=Math.hypot(x-p.x,y-p.y);if(d<d1){second=best;d2=d1;best=p;d1=d}else if(d<d2){second=p;d2=d}}
  if(!best)return 0;
- const boundary=Math.exp(-1*((d2-d1)/collisionWidth)**2);
+ const boundary=second?Math.exp(-1*((d2-d1)/Math.max(1e-6,collisionWidth))**2):0;
  const vx=(best.vx||0)-1*(second?.vx||0),vy=(best.vy||0)-1*(second?.vy||0);
  const delta=second?{x:second.x-best.x,y:second.y-best.y}:{x:0,y:0};
  const collision=Math.max(0,vx*delta.x+vy*delta.y)/(Math.hypot(delta.x,delta.y)||1);
@@ -53,7 +53,8 @@ export function voronoiGeology(x,y,sites){
 }
 export function hydraulicErosion(data,w,h,{iterations=200,seed=3,capacity=3,evaporation=.08}={}){
  assertGrid(data,w,h);const H=new Float32Array(data),random=rng(seed);
- for(let n=0;n<Math.min(iterations,20000);n++){
+ if(w<3||h<3)return H;
+ for(let n=0;n<Math.max(0,Math.min(Math.floor(iterations),20000));n++){
  let x=1+Math.floor(random()*(w-2)),y=1+Math.floor(random()*(h-2)),water=1,sediment=0;
  for(let k=0;k<50;k++){const i=y*w+x;let lowest=i,best=H[i];
  for(const j of [i-1,i+1,i-w,i+w])if(H[j]<best){best=H[j];lowest=j}
@@ -63,12 +64,15 @@ export function hydraulicErosion(data,w,h,{iterations=200,seed=3,capacity=3,evap
  else{const d=Math.min(drop*.35,(target-sediment)*.08);H[i]-=d;sediment+=d}
  x=lowest%w;y=Math.floor(lowest/w);water*=1-evaporation;
  if(x<1||x>=w-1||y<1||y>=h-1||water<.01)break;
- }}
+ }
+ // Deposit remaining transported sediment at the last valid droplet position.
+ H[y*w+x]+=sediment;
+ }
  return H;
 }
 export function thermalErosion(data,w,h,{iterations=8,talus=.9,strength=.3}={}){
  assertGrid(data,w,h);let H=new Float32Array(data);
- for(let k=0;k<iterations;k++){const delta=new Float32Array(H.length);
+ for(let k=0;k<Math.min(2000,Math.max(0,Math.floor(iterations)));k++){const delta=new Float32Array(H.length);
  for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){
  const i=y*w+x;
  for(const j of [i-1,i+1,i-w,i+w]){const excess=H[i]-H[j]-talus;if(excess>0){const flow=excess*strength*.25;delta[i]-=flow;delta[j]+=flow}}
@@ -77,14 +81,16 @@ export function thermalErosion(data,w,h,{iterations=8,talus=.9,strength=.3}={}){
 export function aeolianErosion(data,w,h,{windX=1,windY=0,steps=4,rate=.008}={}){
  assertGrid(data,w,h);let H=new Float32Array(data);
  const dx=Math.sign(windX),dy=Math.sign(windY);
- for(let k=0;k<steps;k++){const d=new Float32Array(H.length);
+ if(!dx&&!dy)return H;
+ for(let k=0;k<Math.min(2000,Math.max(0,Math.floor(steps)));k++){const d=new Float32Array(H.length);
  for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){const i=y*w+x,j=(y+dy)*w+x+dx;
- const moved=Math.max(0,H[i]-H[j]) * rate;d[i]-=moved;d[j]+=moved}
+ const moved=Math.max(0,H[i]-H[j]) * clamp(rate,0,.25);d[i]-=moved;d[j]+=moved}
  H=H.map((v,i)=>v+d[i]);}return H;
 }
 export function depositSediment(heights,sediment,w,h,rate=.1){
  assertGrid(heights,w,h);assertGrid(sediment,w,h);
- return {height:heights.map((v,i)=>v+sediment[i]*rate),sediment:sediment.map(v=>v*(1-rate))};
+ const fraction=clamp(rate);
+ return {height:heights.map((v,i)=>v+sediment[i]*fraction),sediment:sediment.map(v=>v*(1-fraction))};
 }
 export function riverFlowDirection(heights,w,h){
  assertGrid(heights,w,h);const flow=new Int32Array(w*h).fill(-1);
@@ -95,11 +101,12 @@ export function riverFlowDirection(heights,w,h){
  }return flow;
 }
 export function watershedBasins(flow,w,h){
+ if(!(flow instanceof Int32Array)||flow.length!==w*h)throw TypeError("Invalid flow grid");
  const outlet=new Int32Array(w*h).fill(-1);
  for(let i=0;i<flow.length;i++){if(outlet[i]>=0)continue;
  let p=i,walk=[],seen=new Set();
- while(p>=0&&!seen.has(p)&&outlet[p]<0){seen.add(p);walk.push(p);p=flow[p]}
- const sink=p<0?walk.at(-1):outlet[p]>=0?outlet[p]:p;
+ while(p>=0&&p<flow.length&&!seen.has(p)&&outlet[p]<0){seen.add(p);walk.push(p);p=flow[p]}
+ const sink=p<0||p>=flow.length?walk.at(-1):outlet[p]>=0?outlet[p]:p;
  for(const j of walk)outlet[j]=sink;
  }return outlet;
 }
@@ -118,6 +125,8 @@ export function caveDensity(x,y,z,{seed=1,scale=.025,threshold=.24}={}){
 }
 export function marchingCubesTetrahedra(sample,nx,ny,nz,iso=0){
  // Tetrahedral subdivision of cubic cells avoids ambiguous marching-cubes cases.
+ if(![nx,ny,nz].every(n=>Number.isInteger(n)&&n>=2)||
+ (nx-1)*(ny-1)*(nz-1)>125000)throw RangeError("Mesh cell budget exceeded");
  const vertices=[],triangles=[];
  const cube=[[0,0,0],[1,0,0],[1,1,0],[0,1,0],[0,0,1],[1,0,1],[1,1,1],[0,1,1]];
  const tetra=[[0,5,1,6],[0,1,2,6],[0,2,3,6],[0,3,7,6],[0,7,4,6],[0,4,5,6]];
