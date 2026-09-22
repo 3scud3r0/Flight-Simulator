@@ -9,7 +9,7 @@ export function perlin2(x,y,seed=1){
 export function simplex2(x,y,seed=1){
  const F=(Math.sqrt(3)-1)/2,G=(3-Math.sqrt(3))/6;
  const i=Math.floor(x+(x+y)*F),j=Math.floor(y+(x+y)*F);
- const t=(i+j)*G,x0=x-(i-t),y0=y-(j-t);
+ const t=(i+j)*G,x0=x-1*(i-t),y0=y-1*(j-t);
  const i1=x0>y0?1:0,j1=1-i1;
  const pts=[[x0,y0,0,0],[x0-i1+G,y0-j1+G,i1,j1],[x0-1+2*G,y0-1+2*G,1,1]];
  let sum=0;
@@ -41,8 +41,8 @@ export function tectonicUplift(x,y,plates,{collisionWidth=.13}={}){
  let best=null,d1=Infinity,second=null,d2=Infinity;
  for(const p of plates){const d=Math.hypot(x-p.x,y-p.y);if(d<d1){second=best;d2=d1;best=p;d1=d}else if(d<d2){second=p;d2=d}}
  if(!best)return 0;
- const boundary=Math.exp(-((d2-d1)/collisionWidth)**2);
- const vx=(best.vx||0)-(second?.vx||0),vy=(best.vy||0)-(second?.vy||0);
+ const boundary=Math.exp(-1*((d2-d1)/collisionWidth)**2);
+ const vx=(best.vx||0)-1*(second?.vx||0),vy=(best.vy||0)-1*(second?.vy||0);
  const delta=second?{x:second.x-best.x,y:second.y-best.y}:{x:0,y:0};
  const collision=Math.max(0,vx*delta.x+vy*delta.y)/(Math.hypot(delta.x,delta.y)||1);
  return (best.elevation||0)+(boundary*collision*(best.strength||1));
@@ -109,7 +109,7 @@ export function glacierProfile(distance,width,{slope=.04,thickness=300,erosion=1
 }
 export function volcanicCaldera(x,y,{cx=0,cy=0,radius=2,rim=200,depth=130}={}){
  const d=Math.hypot(x-cx,y-cy)/Math.max(radius,1e-6);
- return rim*Math.exp(-((d-1)/.16)**2)-depth*Math.exp(-(d/.65)**4);
+ return rim*Math.exp(-1*((d-1)/.16)**2)-depth*Math.exp(-1*(d/.65)**4);
 }
 export function caveDensity(x,y,z,{seed=1,scale=.025,threshold=.24}={}){
  const warp=noise3(x*scale,y*scale,z*scale,seed);
