@@ -8,8 +8,12 @@ import {
  AETHERIA_REGIONS,AETHERIA_AIRPORTS,AETHERIA_LANDMARKS,
  AETHERIA_SIZE,aetheriaRegionAt,aetheriaNearestAirport
 } from "./aetheria-data.js";
-import {Generation,Materials,Weather,Water,Streaming,Lighting,
- Performance,Infrastructure} from "./engine/index.js";
+// Import ONLY the numerical kernels used by this world. Importing
+// engine/index.js pulled all 180 kernels and their transitive dependencies
+// through one delayed network request, causing an avoidable load failure.
+import * as Generation from "./engine/generation.js";
+import * as Weather from "./engine/weather.js";
+import * as Infrastructure from "./engine/infrastructure.js";
 
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
 const mix=(a,b,t)=>a+(b-a)*t;
