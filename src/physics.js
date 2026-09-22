@@ -89,7 +89,8 @@ export function stepFlight(state, input = {}, dt = 1 / 60, terrainElevation = 0)
   const forwardAcceleration = (thrust - drag - braking) / a.mass -
     9.81 * Math.sin(flightPathAngle) + (state.onGround ? 0 : arcadeBoost);
   state.speed = clamp(state.speed + forwardAcceleration * h, 0,
-    a.maxSpeed * (arcadeBoost > 0 ? 1.65 : 1.16));
+    arcadeBoost > 0 ? a.maxSpeed * 1.65 :
+      Math.max(a.maxSpeed * 1.16, state.speed));
   const verticalAcceleration = lift * Math.cos(state.roll) / a.mass - 9.81;
   state.gLoad = lift / (a.mass * 9.81);
   state.verticalSpeed = clamp(state.verticalSpeed +
