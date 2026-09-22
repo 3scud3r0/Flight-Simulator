@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#06111f">
+  <meta name="description" content="Rio Flight: simulador de voo 3D gratuito, jogável no navegador, com o Rio de Janeiro, aeroportos e aeronaves.">
+  <title>RIO FLIGHT — Simulador de Voo</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <canvas id="scene" aria-label="Cena tridimensional do simulador de voo"></canvas>
+  <div id="vignette" aria-hidden="true"></div>
+  <header class="topbar">
+    <a href="./" class="brand" aria-label="Rio Flight — início">
+      <span class="brand-icon">✦</span>
+      <span><strong>RIO<span class="brand-light">FLIGHT</span></strong><small>FLIGHT SIMULATOR · BRASIL</small></span>
+    </a>
+    <div class="top-center"><span class="live-dot"></span><span id="flight-status">PRONTO PARA VOAR</span><span class="top-divider">/</span><span id="fps">-- FPS</span></div>
+    <div class="top-actions">
+      <button id="help" class="icon-button" type="button" title="Controles (H)" aria-label="Abrir ajuda">?</button>
+      <button id="sound" class="icon-button" type="button" title="Ativar som" aria-label="Ativar som">♪</button>
+      <button id="fullscreen" class="icon-button" type="button" title="Tela cheia" aria-label="Tela cheia">⛶</button>
+    </div>
+  </header>
+
+  <aside id="control-panel" class="panel controls-panel" aria-label="Configuração do voo">
+    <div class="panel-heading"><span>PAINEL DE VOO</span><span class="subtle">01 / SIMULAÇÃO</span></div>
+    <label for="aircraft">AERONAVE</label>
+    <select id="aircraft">
+      <option value="cessna">Cessna 172 · aviação geral</option>
+      <option value="twin">Turboélice · regional</option>
+      <option value="jet">Jato · comercial</option>
+    </select>
+    <label for="airport">AEROPORTO DE REFERÊNCIA</label>
+    <select id="airport">
+      <option value="SBRJ">SBRJ · Santos Dumont</option>
+      <option value="SBGL">SBGL · Galeão</option>
+      <option value="SBJR">SBJR · Jacarepaguá</option>
+    </select>
+    <div class="control-row">
+      <div><label for="weather">CONDIÇÃO</label>
+        <select id="weather">
+          <option value="limpo">Céu limpo</option>
+          <option value="nublado">Nublado</option>
+          <option value="névoa">Névoa</option>
+          <option value="vento">Vento lateral</option>
+        </select>
+      </div>
+      <div><label for="quality">GRÁFICOS</label>
+        <select id="quality">
+          <option value="auto">Automático</option>
+          <option value="eco">Econômico</option>
+          <option value="high">Alta qualidade</option>
+        </select>
+      </div>
+    </div>
+    <div class="time-header"><label for="time">HORA LOCAL</label><span id="time-value">14:00</span></div>
+    <input id="time" type="range" min="5" max="22" step=".25" value="14" aria-label="Hora do dia">
+    <div class="time-ticks"><span>AMANHECER</span><span>ANOITECER</span></div>
+    <div class="panel-separator"></div>
+    <label for="route">DESTINO / PONTO DE INTERESSE</label>
+    <select id="route">
+      <option value="0">Pão de Açúcar</option>
+      <option value="1">Cristo Redentor</option>
+      <option value="2">Maracanã</option>
+      <option value="3">Lagoa Rodrigo de Freitas</option>
+      <option value="4">Praia de Copacabana</option>
+    </select>
+    <div class="destination"><div><span class="subtle">DISTÂNCIA</span><strong id="distance">-- NM</strong></div><div><span class="subtle">RUMO AO DESTINO</span><strong id="bearing">---°</strong></div></div>
+    <button id="takeoff" class="button-primary" type="button">⤴ &nbsp; DECOLAR DA PISTA</button>
+    <button id="reset" class="button-secondary" type="button">↺ &nbsp; REINICIAR VOO</button>
+    <p class="disclaimer">Cenário artístico aproximado e dinâmica educativa. Não utilizar para navegação real.</p>
+  </aside>
+
+  <aside id="map-panel" class="panel map-panel" aria-label="Mapa de navegação">
+    <div class="map-heading"><span>MAPA TÁTICO <em>· RIO DE JANEIRO</em></span><span id="map-bearing">N ↑</span></div>
+    <canvas id="map" width="320" height="320" aria-label="Mapa da região, aeroportos e aeronave"></canvas>
+    <div class="map-legend"><span><i class="legend-plane"></i> SUA POSIÇÃO</span><span><i class="legend-airport"></i> AEROPORTO</span></div>
+  </aside>
+
+  <div class="crosshair" aria-hidden="true"><span></span><span></span><i></i></div>
+  <div id="warning" class="warning" role="status" aria-live="polite"></div>
+
+  <section class="hud" aria-label="Instrumentos de voo">
+    <div class="hud-cell"><span class="hud-label">VELOCIDADE INDICADA</span><div class="hud-number"><span id="speed">000</span><small>KTS</small></div><div class="hud-extra" id="aircraft-class">AVIAÇÃO GERAL</div></div>
+    <div class="hud-cell"><span class="hud-label">ALTITUDE</span><div class="hud-number"><span id="altitude">0000</span><small>FT</small></div><div class="hud-extra" id="vs">VS +000 FT/MIN</div></div>
+    <div class="hud-cell heading-cell"><span class="hud-label">PROA VERDADEIRA</span><div class="hud-number"><span id="heading">000</span><small>°</small></div><div class="hud-extra" id="coords">22°S · 43°W</div></div>
+    <div class="hud-cell"><span class="hud-label">POTÊNCIA</span><div class="hud-number"><span id="throttle">76</span><small>%</small></div><div class="progress"><div id="throttle-bar"></div></div></div>
+    <div class="hud-cell compact"><span class="hud-label">CONFIGURAÇÃO</span><div class="config" id="gear">GEAR ▾</div><div class="hud-extra" id="flaps">FLAPS 0%</div></div>
+    <div class="hud-buttons">
+      <button id="camera" type="button" title="Mudar câmera (V)">◉ <span id="camera-name">EXTERNA</span></button>
+      <button id="pause" type="button" title="Pausar (P)">Ⅱ <span id="pause-name">PAUSAR</span></button>
+    </div>
+  </section>
+  <div class="footer-hint"><span>W/S</span> ARFAGEM <b>·</b> <span>A/D</span> ROLAGEM <b>·</b> <span>Q/E</span> LEME <b>·</b> <span>+/−</span> POTÊNCIA <b>·</b> <span>V</span> CÂMERA <b>·</b> <span>H</span> AJUDA</div>
+
+  <div id="mobile" class="mobile-controls" aria-label="Controles de toque">
+    <div><span>POTÊNCIA</span><input id="touch-throttle" type="range" min="0" max="100" value="76"></div>
+    <div id="stick" class="stick" role="group" aria-label="Controle de arfagem e rolagem"><div id="stick-knob"></div></div>
+    <div class="mobile-buttons"><button id="rudder-left" type="button">◀ LEME</button><button id="rudder-right" type="button">LEME ▶</button><button id="touch-flaps" type="button">FLAPS</button><button id="touch-gear" type="button">TREM</button></div>
+  </div>
+
+  <div id="welcome" class="overlay" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
+    <div class="welcome-card">
+      <div class="eyebrow"><span class="live-dot"></span> SEU PRÓXIMO VOO COMEÇA AQUI</div>
+      <div class="hero-emblem">✦</div>
+      <h1 id="welcome-title">O RIO É<br><em>SEU CÉU.</em></h1>
+      <p>Decole sobre a Baía de Guanabara, contorne o Pão de Açúcar e descubra o Rio de Janeiro em um simulador 3D feito para o navegador.</p>
+      <div class="welcome-features"><span>◈ 3 AERONAVES</span><span>◈ 3 AEROPORTOS</span><span>◈ VOO LIVRE</span></div>
+      <button id="start" class="button-primary hero-button" type="button">INICIAR VOO PANORÂMICO &nbsp; ↗</button>
+      <button id="start-runway" class="link-button" type="button">OU COMEÇAR NA PISTA DE DECOLAGEM →</button>
+      <small>WebGL 2 recomendado · Teclado, mouse e controles de toque · Gratuito</small>
+    </div>
+  </div>
+
+  <div id="help-overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="help-title">
+    <div class="help-card"><button id="close-help" class="close" type="button" aria-label="Fechar ajuda">×</button>
+      <div class="eyebrow">MANUAL DE COMANDOS</div><h2 id="help-title">ASSUMA OS CONTROLES</h2>
+      <div class="help-grid">
+        <div><kbd>W</kbd> / <kbd>↑</kbd><span>Elevar o nariz</span></div>
+        <div><kbd>S</kbd> / <kbd>↓</kbd><span>Baixar o nariz</span></div>
+        <div><kbd>A</kbd> / <kbd>←</kbd><span>Inclinar à esquerda</span></div>
+        <div><kbd>D</kbd> / <kbd>→</kbd><span>Inclinar à direita</span></div>
+        <div><kbd>Q</kbd> / <kbd>E</kbd><span>Leme esquerda / direita</span></div>
+        <div><kbd>+</kbd> / <kbd>−</kbd><span>Aumentar / reduzir potência</span></div>
+        <div><kbd>G</kbd> / <kbd>F</kbd><span>Trem / flaps</span></div>
+        <div><kbd>B</kbd><span>Freios (segurar)</span></div>
+        <div><kbd>V</kbd> / <kbd>P</kbd><span>Câmera / pausar</span></div>
+        <div><kbd>R</kbd> / <kbd>H</kbd><span>Reiniciar / ajuda</span></div>
+      </div>
+      <p>Na pista: aumente a potência e puxe o manche ao atingir a velocidade de rotação. Em voo: inclinação e velocidade influenciam sustentação, arrasto e curva. Acima do ângulo de ataque crítico, a asa perde sustentação.</p>
+      <button id="resume-help" class="button-primary" type="button">VOLTAR AO VOO</button>
+    </div>
+  </div>
+  <div id="loading" aria-live="polite">CARREGANDO CENÁRIO DO RIO...</div>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
