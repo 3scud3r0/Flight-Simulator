@@ -4,7 +4,8 @@ import {clamp,lerp,vec,add,sub,mul,dot,cross,norm,length} from "./math.js";
 import {qNormalize,qMultiply,qRotate,qInverseRotate} from "../six-dof.js";
 import {isa} from "../atmosphere.js";
 export function rigidBody6DOF(state,forceBody,momentBody,mass,inertia,dt){
- if(mass<=0||dt<=0)throw RangeError("Positive mass and dt required");
+ if(!(mass>0&&dt>0&&dt<=.25)||!["x","y","z"].every(k=>inertia[k]>0))
+ throw RangeError("Positive mass/inertia and dt in (0,.25] required");
  const w=state.omega,iv=vec(w.x*inertia.x,w.y*inertia.y,w.z*inertia.z);
  const gyro=cross(w,iv),torque=sub(momentBody,gyro);
  const v=add(state.velocity,mul(add(mul(qRotate(state.q,forceBody),1/mass),vec(0,-9.80665,0)),dt));
@@ -20,6 +21,8 @@ export function quaternionIntegrate(q,omega,dt){
  return qNormalize(qMultiply(q,delta));
 }
 export function rungeKutta4(state,dt,derivative){
+ if(!(dt>=0&&dt<=.25)||!state.length||state.length>4096)
+ throw RangeError("RK4 state or step exceeds budget");
  const apply=(x,d,h)=>x.map((v,i)=>v+d[i]*h);
  const a=derivative(state),b=derivative(apply(state,a,dt/2)),
  c=derivative(apply(state,b,dt/2)),d=derivative(apply(state,c,dt));
@@ -42,6 +45,8 @@ export function aeroCoefficientModel(alpha,beta,elevator=0,flaps=0,config={}){
 }
 export function lookupAeroTable(samples,x){
  if(!samples.length)throw RangeError("Empty coefficient table");
+ for(let i=1;i<samples.length;i++)if(!(samples[i].x>samples[i-1].x))
+ throw RangeError("Aerodynamic table must be sorted with unique x values");
  if(x<=samples[0].x)return samples[0].value;
  for(let i=1;i<samples.length;i++)if(x<=samples[i].x){
  const a=samples[i-1],b=samples[i];return lerp(a.value,b.value,(x-a.x)/(b.x-a.x));}
@@ -88,9 +93,10 @@ export function engineSpool(previous,target,dt,{up=3.1,down=1.7}={}){
  return lerp(previous,clamp(target),1-Math.exp(-Math.max(0,dt)/time));
 }
 export function propellerPerformance(rpm,airspeed,{diameter=1.9,power=130000,rho=1.225}={}){
+ if(!(diameter>0&&rho>0)||rpm<0)throw RangeError("Invalid propeller parameters");
  const n=Math.max(.1,rpm/60),J=Math.max(0,airspeed)/(n*diameter);
  const efficiency=clamp(.73*Math.exp(-1*((J-.75)/.8)**2),0,.86);
- const thrust=power*Math.max(.05,efficiency)/Math.max(airspeed,12);
+ const thrust=rpm<=0||power<=0?0:power*Math.max(.05,efficiency)/Math.max(airspeed,12);
  const tipMach=Math.PI*diameter*n/340;
  return {thrust,efficiency,advanceRatio:J,tipMach};
 }
@@ -99,7 +105,9 @@ export function turbineThrust(throttle,altitude,mach,{seaLevel=110000,bypass=5}=
  return seaLevel*clamp(throttle)*Math.pow(rho,.75)*ram*(1-.008*bypass);
 }
 export function fuelTransfer(tanks,massKg,from,to){
- const t=tanks.map(x=>({...x})),transfer=Math.max(0,Math.min(massKg,t[from].fuel,
+ const t=tanks.map(x=>({...x}));
+ if(!t[from]||!t[to])throw RangeError("Unknown fuel tank");
+ const transfer=from===to?0:Math.max(0,Math.min(massKg,t[from].fuel,
  t[to].capacity-t[to].fuel));t[from].fuel-=transfer;t[to].fuel+=transfer;
  const total=t.reduce((s,x)=>s+x.fuel,0);
  const cg=total>0?t.reduce((s,x)=>s+x.fuel*x.arm,0)/total:0;
@@ -112,6 +120,7 @@ export function inertiaTensor(parts){
  return [[xx,xy,xz],[xy,yy,yz],[xz,yz,zz]];
 }
 export function landingGearSpring(compression,velocity,{stiffness=85000,damping=9700,stroke=.5}={}){
+ if(compression<=0)return 0;
  const travel=clamp(compression,0,stroke);
  return Math.max(0,stiffness*travel+damping*velocity);
 }
@@ -136,8 +145,8 @@ export function impactEnergy(mass,velocity,normal){
  return {energy:.5*mass*perpendicular**2,verticalSpeed:perpendicular};
 }
 export function pidAutopilot(error,integral,previousError,dt,{kp=1,ki=0,kd=.1,limit=1}={}){
- const next=clamp(integral+error*dt,-limit/Math.max(ki,1e-4),
- limit/Math.max(ki,1e-4)),derivative=(error-previousError)/Math.max(dt,.0001);
+ const next=clamp(integral+error*Math.max(0,dt),-limit/Math.max(Math.abs(ki),1e-4),
+ limit/Math.max(Math.abs(ki),1e-4)),derivative=(error-previousError)/Math.max(dt,.0001);
  return {control:clamp(kp*error+ki*next+kd*derivative,-limit,limit),
  integral:next};
 }
