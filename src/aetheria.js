@@ -9,7 +9,7 @@ import {
  AETHERIA_SIZE,aetheriaRegionAt,aetheriaNearestAirport
 } from "./aetheria-data.js";
 import {Generation,Materials,Weather,Water,Streaming,Lighting,
- Performance} from "./engine/index.js";
+ Performance,Infrastructure} from "./engine/index.js";
 
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
 const mix=(a,b,t)=>a+(b-a)*t;
@@ -219,6 +219,101 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
  const redMat=new THREE.MeshBasicMaterial({color:0xff4d43});
  const greenMat=new THREE.MeshBasicMaterial({color:0x43ee9f});
  const litMat=new THREE.MeshBasicMaterial({color:0xecf3db});
+ function decorateAirport(airport,parent,surface){
+  const region=AETHERIA_REGIONS.find(r=>r.id===airport.regionId);
+  if(!region)return;
+  let seed=region.seed+Number(airport.id.slice(3))*417;
+  const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)|0;
+    return(seed>>>0)/4294967296;};
+  const urban=["megacity","futuristic","industrial","historic"].includes(
+    region.biome)||airport.category==="internacional";
+  if(urban){
+    const count=compatibility?18:mobile?54:
+      region.biome==="megacity"||region.biome==="futuristic"?260:115;
+    const palettes=region.biome==="futuristic"?
+      [0x38405e,0x51577e,0x6c4c87,0x3f6581]:
+      region.biome==="historic"?
+      [0xd0bea1,0xb4a889,0xc3a882,0xa3b5ab]:
+      [0x647988,0x91a8b4,0x84909a,0x9eacb5];
+    const meshes=palettes.map(color=>new THREE.InstancedMesh(
+      new THREE.BoxGeometry(1,1,1),
+      new THREE.MeshStandardMaterial({color,metalness:.1,roughness:.7,
+        emissive:region.biome==="futuristic"?0x0d102a:0x020707,
+        emissiveIntensity:.38}),Math.ceil(count/palettes.length)));
+    const sizes=new Int32Array(4);
+    for(let i=0;i<count;i++){
+      const angle=random()*Math.PI*2,dist=1300+random()*8400;
+      const x=airport.x+Math.cos(angle)*dist,
+        z=airport.z+Math.sin(angle)*dist;
+      // Keep runways and taxi approaches legible.
+      if(Math.abs(x-airport.x)<280&&Math.abs(z-airport.z)<3500)
+        continue;
+      const h=(region.biome==="megacity"||region.biome==="futuristic"?
+        25+Math.pow(random(),1.9)*340:
+        8+Math.pow(random(),1.5)*85);
+      const footprint=Infrastructure.architecturalGrammar({
+        x,z,width:14+random()*33,depth:12+random()*33
+      },{floors:Math.max(1,Math.round(h/3.2))});
+      const index=i%palettes.length,slot=sizes[index]++;
+      if(slot>=meshes[index].count)continue;
+      dummy.position.set(x,Math.max(-1,sampleAetheriaHeight(x,z))+
+        h/2,z);
+      dummy.scale.set(footprint.footprint.width,h,
+        footprint.footprint.depth);
+      dummy.rotation.set(0,random()*.45,0);dummy.updateMatrix();
+      meshes[index].setMatrixAt(slot,dummy.matrix);
+    }
+    meshes.forEach(mesh=>{
+      mesh.count=sizes[meshes.indexOf(mesh)];
+      if(mesh.count){mesh.instanceMatrix.needsUpdate=true;parent.add(mesh)}
+      else{mesh.geometry.dispose();mesh.material.dispose()}
+    });
+  }
+  const forest=["jungle","meadow","highlands","fjord",
+    "polar","glacial","tropical","alpine"].includes(region.biome);
+  if(forest){
+    const count=compatibility?25:mobile?55:145;
+    const cold=["polar","glacial","alpine"].includes(region.biome);
+    const tree=new THREE.InstancedMesh(
+      cold?new THREE.IcosahedronGeometry(1,0):
+        new THREE.ConeGeometry(1,1,5),
+      new THREE.MeshStandardMaterial({color:cold?0xbed1d4:
+        region.biome==="tropical"?0x2a7354:0x38674c,
+        roughness:.99}),count);
+    let placed=0;
+    for(let i=0;i<count;i++){
+      const theta=random()*Math.PI*2,d=1500+random()*6500;
+      const x=airport.x+Math.cos(theta)*d,
+        z=airport.z+Math.sin(theta)*d;
+      const height=cold?5+random()*16:12+random()*32;
+      dummy.position.set(x,sampleAetheriaHeight(x,z)+height/2,z);
+      dummy.scale.set(cold?3+random()*5:3+random()*3,
+        height,cold?3+random()*5:3+random()*3);
+      dummy.rotation.set(0,theta,0);dummy.updateMatrix();
+      tree.setMatrixAt(placed++,dummy.matrix);
+    }
+    tree.count=placed;tree.instanceMatrix.needsUpdate=true;
+    parent.add(tree);
+  }
+  if(region.biome==="fantasy"){
+    // Artistic floating terrain is DECORATIVE, not part of collision DEM.
+    const rock=new THREE.InstancedMesh(
+      new THREE.IcosahedronGeometry(1,1),
+      new THREE.MeshStandardMaterial({color:0x6873aa,
+        roughness:.81,flatShading:true,emissive:0x09051c}),12);
+    for(let i=0;i<12;i++){
+      const theta=i*2.399963,dist=2400+random()*6400;
+      const x=airport.x+Math.cos(theta)*dist,
+        z=airport.z+Math.sin(theta)*dist;
+      const h=140+random()*350;
+      dummy.position.set(x,airport.elevation+550+random()*2100,z);
+      dummy.scale.set(140+random()*230,h,130+random()*200);
+      dummy.rotation.set(random(),theta,random());dummy.updateMatrix();
+      rock.setMatrixAt(i,dummy.matrix);
+    }
+    rock.instanceMatrix.needsUpdate=true;parent.add(rock);
+  }
+ }
  function airportMesh(airport){
   disposeGroup(THREE,airportGroup,false);
   // The group itself is kept attached; disposeGroup removes all children.
@@ -245,6 +340,9 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
     surface+.55,airport.z+Math.sin(heading)*side*(rw.width/2-1));
    edge.rotation.y=angle;parent.add(edge);
   }
+  // Each biome creates its own ORIGINAL visual silhouette near airports.
+  // These are instanced meshes rather than hundreds of draw calls.
+  decorateAirport(airport,parent,surface);
   // GPU instance batches instead of one draw call per edge light.
   const count=Math.ceil(rw.length/110);
   const lights=new THREE.InstancedMesh(new THREE.SphereGeometry(1,5,4),
