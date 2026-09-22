@@ -373,6 +373,18 @@ export function createWorld(THREE, scene, renderer) {
     water.offset.y = (water.offset.y + dt * .00016) % 1;
     renderer.toneMappingExposure = .35 + day * .95;
   }
+  function setRealTerrainEnabled(enabled) {
+    // Explicitly remove invented mountains, fake skyline and fake rocks.
+    // Runways and 3D labels remain geographic reference aids.
+    terrain.visible = !enabled;
+    beachMesh.visible = !enabled;
+    rock.visible = !enabled;
+    statue.visible = !enabled;
+    for (const blocks of scene.children) {
+      if (blocks.isInstancedMesh && boxes.some(list =>
+        list.length === blocks.count)) blocks.visible = !enabled;
+    }
+  }
   return { sampleHeight, updateEnvironment, airports: AIRPORTS,
-    landmarks: LANDMARKS, sun, cloudMat };
+    landmarks: LANDMARKS, sun, cloudMat, setRealTerrainEnabled };
 }
