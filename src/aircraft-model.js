@@ -110,7 +110,7 @@ export function makeDetailedAircraft(THREE, scene, id) {
   for(let side of [-1,1]){
     const aileron=add(new THREE.BoxGeometry(span*.135,.11,
       jet?1.05:twin?.60:.32),trim,
-      side*span*.38,jet?0:.52:.36,jet?2.1:twin?1.1:.67);
+      side*span*.38,jet?0:twin?.52:.36,jet?2.1:twin?1.1:.67);
     moving.push(aileron);
     const elevator=add(new THREE.BoxGeometry(span*.13,.10,
       jet?.55:twin?.40:.22),wingInner,
