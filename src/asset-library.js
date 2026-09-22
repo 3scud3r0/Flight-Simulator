@@ -68,7 +68,20 @@ export function planAirportAssets(airport,region,{mobile=false}={}){
     width:width*(.82+random()*.5)});
   }
  }
- append(CHOICES.hangars,mobile?3:7,450,1000,24,48);
+ // Park real CC0 hangars in an intentional row next to the apron,
+ // never scatter them randomly in the approach corridor.
+ const hangarCount=mobile?3:7;
+ for(let i=0;i<hangarCount;i++){
+  const offset=(i-(hangarCount-1)/2)*102;
+  const lateral=425+(i%2)*65;
+  items.push({
+   key:CHOICES.hangars[i%CHOICES.hangars.length],
+   x:airport.x+right.x*lateral+forward.x*offset,
+   z:airport.z+right.z*lateral+forward.z*offset,
+   yaw:heading,
+   height:24+(i%3)*4,width:42+(i%2)*12
+  });
+ }
  if(urban)append(region.biome==="industrial"?CHOICES.industrial:
   region.biome==="historic"?CHOICES.suburban:CHOICES.city,
   cityCount,520,full?2050:1450,region.biome==="megacity"?
