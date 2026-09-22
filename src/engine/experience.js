@@ -2,13 +2,13 @@
 import {clamp,lerp,vec,add,sub,mul,norm,hash} from "./math.js";
 export function proceduralEngineAudio(throttle,rpm,type="piston"){
  const base=type==="jet"?45:type==="turboprop"?78:35;
- return {fundamentalHz:base+rpm/60*(type==="jet"?1:2),
+ return {fundamentalHz:base+Math.max(0,rpm)/60*(type==="jet"?1:2),
  harmonics:[1,2,3,4,6].map(k=>({multiplier:k,gain:clamp(throttle)/(k*k)})),
  noise:clamp(throttle)*(type==="jet"?.8:.18)};
 }
 export function layeredAudioSpectrum(layers){
  const bins=new Float32Array(512);
- for(const layer of layers){const center=clamp(
+ for(const layer of layers.slice(0,4096)){const center=clamp(
  Math.round(layer.hz/22050*512),0,511);
  for(let k=Math.max(0,center-3);k<=Math.min(511,center+3);k++)
  bins[k]+=(layer.gain||0)*Math.exp(-1*((k-center)/1.3)**2)}
@@ -35,6 +35,7 @@ export function adaptiveHUD(state,mode="free"){
  velocity:state.ias??state.speed};
 }
 export function deterministicReplay(initial,inputs,integrate){
+ if(inputs.length>200000)throw RangeError("Replay budget exceeded");
  const history=[structuredClone(initial)];let state=structuredClone(initial);
  for(const input of inputs){state=integrate(state,input);
  history.push(structuredClone(state))}
@@ -47,8 +48,8 @@ export function cinematicCamera(plane,landmark,dt=1/60){
 }
 export function proceduralPrecisionCourse(route,sampleHeight,{clearance=200,
  spacing=350,maxBank=.35}={}){
- const gates=[];for(let i=0;i<route.length;i++){
- const p=route[i];if(i&&Math.hypot(p.x-route[i-1].x,p.z-route[i-1].z)<spacing)continue;
+ const gates=[];for(let i=0;i<Math.min(10000,route.length);i++){
+ const p=route[i];if(gates.length&&Math.hypot(p.x-gates.at(-1).x,p.z-gates.at(-1).z)<Math.max(1,spacing))continue;
  gates.push({x:p.x,y:Math.max(p.y||0,sampleHeight(p.x,p.z)+clearance),
  z:p.z,radius:clamp(65-Math.abs(p.turn||0)*maxBank*40,28,65)})}return gates;
 }
@@ -59,11 +60,12 @@ export function trajectoryScore(events,{base=100,timeWeight=.6,
  clamp(e.speed/90)*base*timeWeight:0),0);
 }
 export function combinatorialMissions(airports,landmarks,types,seed=1){
+ if(!airports.length||!landmarks.length||!types.length)return [];
  const result=[];for(let i=0;i<Math.min(1000,airports.length*
- Math.max(1,landmarks.length)*types.length);i++){
+ landmarks.length*types.length);i++){
  const from=airports[i%airports.length],
- target=landmarks[(i*7+seed)%landmarks.length],
- type=types[(i*11+seed)%types.length];
+ target=landmarks[((i*7+seed)%landmarks.length+landmarks.length)%landmarks.length],
+ type=types[((i*11+seed)%types.length+types.length)%types.length];
  result.push({id:i,type,from:from.id,to:target.id,difficulty:clamp(
  Math.hypot(from.x-target.x,from.z-target.z)/150000)});}
  return result;
