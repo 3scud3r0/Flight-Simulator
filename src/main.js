@@ -670,7 +670,7 @@ function mapXY(p) {
 function drawMap() {
   mapCtx.clearRect(0, 0, 320, 320);
   mapCtx.drawImage(mapImage, 0, 0);
-  const target = LANDMARKS[Number($("route").value)];
+  const target = LANDMARKS[Number($("route").value)] || LANDMARKS[0];
   const tp = mapXY(geo(target.lat, target.lon));
   const own = mapXY(flight);
   mapCtx.strokeStyle = "#b0ebf6"; mapCtx.lineWidth = 1.5;
@@ -701,7 +701,7 @@ function updateHud() {
     "X "+(flight.x/1000).toFixed(0)+" KM · Z "+(flight.z/1000).toFixed(0)+" KM" :
     Math.abs(gps.lat).toFixed(2) + "°S · " +
     Math.abs(gps.lon).toFixed(2) + "°W";
-  const target = LANDMARKS[Number($("route").value)];
+  const target = LANDMARKS[Number($("route").value)] || LANDMARKS[0];
   const p = geo(target.lat, target.lon);
   const dx = p.x - flight.x, dz = p.z - flight.z;
   $("distance").textContent = (Math.hypot(dx, dz) / 1852).toFixed(1) + " NM";
@@ -729,7 +729,7 @@ function resize() {
   camera.aspect = w / h; camera.updateProjectionMatrix();
   renderer.shadowMap.enabled = quality === "high";
   world.sun.castShadow = quality === "high";
-  const useOcean = activeWorld==="rio" && !SAFE_MODE && !MOBILE_DEVICE && quality === "high";
+  const useOcean = !SAFE_MODE && !MOBILE_DEVICE && quality === "high";
   if (useOcean && !ocean) ocean = createOcean(THREE, scene, renderer);
   if (ocean) ocean.surface.visible = useOcean;
   world.sea.visible = !useOcean;
@@ -784,8 +784,22 @@ $("game-mode").addEventListener("change", () => {
     if (running) { paused = false; $("pause-name").textContent = "PAUSAR"; }
   }
 });
-$("aircraft").addEventListener("change", () => spawn(false));
-$("airport").addEventListener("change", () => spawn(false));
+$("aircraft").addEventListener("change", () => {
+  if(running)begin(false,$("game-mode").value);
+  else spawn(false);
+});
+$("airport").addEventListener("change", () => {
+  if(activeWorld==="aetheria"){
+    const airport=AIRPORTS.find(a=>a.id===$("airport").value);
+    if(airport){
+      $("aetheria-region").value=airport.regionId;
+      const idx=LANDMARKS.findIndex(p=>p.regionId===airport.regionId);
+      if(idx>=0)$("route").value=String(idx);
+    }
+  }
+  if(running)begin(false,$("game-mode").value);
+  else spawn(false);
+});
 $("camera").addEventListener("click", cycleCamera);
 $("mobile-camera").addEventListener("click", cycleCamera);
 $("mobile-pause").addEventListener("click", () => { if (running) togglePause(); });
@@ -959,6 +973,10 @@ function animate(now) {
       environmentWind=climate.wind;
     }
     ocean?.update(dt, environment.sun.vector, $("weather").value);
+    if(ocean&&activeWorld==="aetheria"){
+      ocean.surface.position.x=flight.x;
+      ocean.surface.position.z=flight.z;
+    }
   }
   if(activeWorld==="rio")terrainEngine?.update(flight.x, flight.z);
   updateCamera(dt);
@@ -976,9 +994,12 @@ function animate(now) {
   requestAnimationFrame(animate);
 }
 requestAnimationFrame(animate);
-if (!SAFE_MODE && $("terrain-mode").value === "real") {
-  // A later macrotask lets browsers paint the menu/cockpit first.
-  setTimeout(rebuildTerrain, 1200);
-} else {
-  $("terrain-status").textContent = "Modo leve ativo · cenário disponível.";
+const requestedWorld=new URLSearchParams(location.search).get("world");
+if(requestedWorld==="aetheria"){
+  setTimeout(()=>changeWorld("aetheria"),200);
+}else if(!SAFE_MODE && $("terrain-mode").value==="real"){
+  // Rio keeps the old DEM optional and starts after the first render.
+  setTimeout(()=>{if(activeWorld==="rio")rebuildTerrain()},1200);
+}else{
+  $("terrain-status").textContent="Modo leve ativo · cenário disponível.";
 }
