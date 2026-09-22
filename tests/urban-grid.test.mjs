@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {planUrbanGridTile,STREET_GRID,STREET_WIDTH}
+import {planUrbanGridTile,isStreetCorridor,STREET_GRID,STREET_WIDTH}
  from "../src/urban-grid.js";
 import {isAirportClear,planSceneryTile,SCENERY_CELL}
  from "../src/scenery-plan.js";
@@ -63,6 +63,11 @@ test("roads, lamp posts and buildings respect airport clearances",()=>{
   for(const lamp of tile.lamps){
    assert.ok(isAirportClear(lamp.x,lamp.z));
   }
+  for(const tree of tile.trees){
+   if(aetheriaRegionAt(ix*SCENERY_CELL+1200,
+    iz*SCENERY_CELL+1200).biome==="megacity")
+    assert.equal(isStreetCorridor(tree.x,tree.z),false);
+  }
  }
  for(const airport of AETHERIA_AIRPORTS)
   assert.equal(isAirportClear(airport.x,airport.z),false);
@@ -90,4 +95,11 @@ test("city rendering budgets reduce road density on mobile",()=>{
  assert.throws(()=>planUrbanGridTile(.25,0,{
   sampleHeight:flat,regionAt:urban,clearance:safe
  }),RangeError);
+});
+
+test("road corridor membership handles negative world coordinates",()=>{
+ assert.equal(isStreetCorridor(0,900),true);
+ assert.equal(isStreetCorridor(-360,900),true);
+ assert.equal(isStreetCorridor(-180,-180),false);
+ assert.equal(isStreetCorridor(-350,-180),true);
 });
