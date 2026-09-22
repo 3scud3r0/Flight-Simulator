@@ -111,6 +111,9 @@ try{
  assert.equal(await full.locator("#airport option").count(),1);
  assert.equal(await full.locator("#route option").count(),5);
  await full.screenshot({path:new URL("tela-inicial.png",proof).pathname});
+ // Exercise the start-menu card path in both directions before takeoff.
+ await choose(full,"rio");
+ await choose(full,"aurora");
  await fly(full,"aurora-voo.png");
  assert.match(await full.locator("#world-info").innerText(),/Aurora/i);
  await full.locator("#world-select").selectOption("aetheria");
@@ -149,6 +152,13 @@ try{
   ?.value==="rio",{timeout:20000});
  assert.equal(await full.locator("#airport option").count(),3);
  await full.screenshot({path:new URL("rio-restored.png",proof).pathname});
+ // The in-flight selector must restore Aurora's world and unique airport.
+ await full.locator("#world-select").selectOption("aurora");
+ await full.waitForFunction(()=>document.querySelector("#world-select")
+  ?.value==="aurora"&&!document.querySelector("#world-select").disabled,
+  {timeout:45000});
+ assert.match(await full.locator("#world-info").innerText(),/Aurora/i);
+ assert.equal(await full.locator("#airport option").count(),1);
  const video=await full.video().path();
  await ctx.close();
  await rename(video,new URL("aetheria-flight.webm",proof));
@@ -172,7 +182,7 @@ try{
   video:"aetheria-flight.webm",checks:[
    "Aurora default world and flight","Rio original flight","Aetheria Lite without dynamic module",
    "Aetheria full renderer with >=12 imported real Kenney CC0 GLBs","Cinematic HUD and keyboard restore",
-   "Region navigation","Return to Rio",
+   "Region navigation","Return to Rio","Return to Aurora from in-flight selector",
    "Forced full-renderer outage falls back to Lite"
   ]
  };
