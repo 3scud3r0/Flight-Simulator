@@ -89,7 +89,7 @@ export function engineSpool(previous,target,dt,{up=3.1,down=1.7}={}){
 }
 export function propellerPerformance(rpm,airspeed,{diameter=1.9,power=130000,rho=1.225}={}){
  const n=Math.max(.1,rpm/60),J=Math.max(0,airspeed)/(n*diameter);
- const efficiency=clamp(.73*Math.exp(-((J-.75)/.8)**2),0,.86);
+ const efficiency=clamp(.73*Math.exp(-1*((J-.75)/.8)**2),0,.86);
  const thrust=power*Math.max(.05,efficiency)/Math.max(airspeed,12);
  const tipMach=Math.PI*diameter*n/340;
  return {thrust,efficiency,advanceRatio:J,tipMach};
@@ -153,7 +153,7 @@ export function lqrController(A,B,Q,R,{iterations=80,bound=1}={}){
  const AP=mm(AT,P);P=sum(Q,sum(mm(AP,A),mm(mm(AP,B),K),-1));
  }
  return {gain:K[0],control(state){return clamp(
- -(K[0][0]*state[0]+K[0][1]*state[1]),-bound,bound)}};
+ -1*(K[0][0]*state[0]+K[0][1]*state[1]),-bound,bound)}};
 }
 export const algorithms=[rigidBody6DOF,quaternionIntegrate,rungeKutta4,
  semiImplicitIntegrator,fixedStepInterpolation,aeroCoefficientModel,
