@@ -66,9 +66,10 @@ function loadImage(url) {
 
 export function createRealTerrain(THREE, scene, opts = {}) {
   const mobile = opts.mobile ?? matchMedia("(pointer: coarse)").matches;
-  const zoom = opts.zoom ?? (mobile ? 12 : DEM_ZOOM);
-  const radius = opts.radius ?? (mobile ? 1 : 3);
-  const limit = opts.limit ?? (mobile ? 2 : 4);
+  // At most 9 nearby tiles initially; prevents 49 parallel DEM/imagery jobs.
+  const zoom = opts.zoom ?? (mobile ? 11 : 12);
+  const radius = opts.radius ?? 1;
+  const limit = opts.limit ?? (mobile ? 1 : 2);
   const maxTiles = (2 * radius + 1) ** 2 + 6;
   const provider = opts.provider ?? "eox";
   const apiKey = opts.apiKey ?? "";
@@ -104,7 +105,7 @@ export function createRealTerrain(THREE, scene, opts = {}) {
   function makeGeometry(z, x, y, heights) {
     // Geographic vertices are calculated directly, avoiding tile edge drift.
     // 256 DEM texels are sampled bilinearly across a 48×48 mesh.
-    const N = mobile ? 24 : 48;
+    const N = mobile ? 16 : 32;
     const positions = new Float32Array((N + 1) ** 2 * 3);
     const uv = new Float32Array((N + 1) ** 2 * 2);
     const indices = [];
