@@ -34,21 +34,24 @@ if (SAFE_MODE) {
 const loading = $("loading");
 const canvas = $("scene");
 let THREE;
-try {
-  THREE = await import("https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js");
-} catch (firstError) {
-  try {
-    THREE = await import("https://unpkg.com/three@0.180.0/build/three.module.js");
-  } catch (secondError) {
-    try {
-      THREE = await import("https://esm.sh/three@0.180.0");
-    } catch (thirdError) {
-      loading.textContent =
-        "Biblioteca 3D indisponível. Verifique a conexão/CDN ou tente o modo compatibilidade.";
-      throw new AggregateError(
-        [firstError, secondError, thirdError], "Three.js unavailable");
-    }
-  }
+const sources=[
+  // Published by the GitHub Pages workflow. Avoid external CDN outages
+  // and let the very same Three.js build be browser-tested before deploy.
+  "../vendor/three.module.js",
+  "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+  "https://unpkg.com/three@0.180.0/build/three.module.js",
+  "https://esm.sh/three@0.180.0"
+];
+const libraryErrors=[];
+for(const url of sources){
+  try{
+    THREE=await import(url);
+    break;
+  }catch(error){libraryErrors.push(error)}
+}
+if(!THREE){
+  loading.textContent="Biblioteca 3D indisponível. Abra o modo leve.";
+  throw new AggregateError(libraryErrors,"Three.js unavailable");
 }
 
 let renderer;
