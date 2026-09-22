@@ -33,11 +33,32 @@
       <option value="free">Voo Livre · sem pontuação</option>
       <option value="challenge">Desafio Aéreo · túnel de argolas</option>
     </select>
+    <label for="terrain-mode">CENÁRIO 3D</label>
+    <select id="terrain-mode">
+      <option value="real">Relevo real · DEM + satélite</option>
+      <option value="art">Terreno artístico · sem downloads</option>
+    </select>
+    <label for="imagery">TEXTURA GEOGRÁFICA</label>
+    <select id="imagery">
+      <option value="eox">Satélite Sentinel-2 · EOX 2024</option>
+      <option value="maptiler">Satélite MapTiler · chave própria</option>
+      <option value="none">Relevo real · sem fotografias</option>
+    </select>
+    <label for="imagery-key">CHAVE MAPTILER (SE UTILIZAR)</label>
+    <input id="imagery-key" type="password" autocomplete="off"
+      placeholder="Chave pública restrita ao domínio">
+    <button id="apply-terrain" class="button-secondary" type="button">APLICAR CENÁRIO</button>
+    <div id="terrain-status" role="status" aria-live="polite">Inicializando dados geográficos…</div>
     <label for="aircraft">AERONAVE</label>
     <select id="aircraft">
       <option value="cessna">Cessna 172 · aviação geral</option>
       <option value="twin">Turboélice · regional</option>
       <option value="jet">Jato · comercial</option>
+    </select>
+    <label for="flight-model">MODELO DE VOO</label>
+    <select id="flight-model">
+      <option value="rigid">6 graus de liberdade · experimental</option>
+      <option value="classic">Clássico · leve</option>
     </select>
     <label for="airport">AEROPORTO DE REFERÊNCIA</label>
     <select id="airport">
@@ -52,6 +73,7 @@
           <option value="nublado">Nublado</option>
           <option value="névoa">Névoa</option>
           <option value="vento">Vento lateral</option>
+          <option value="chuva">Chuva e baixa visibilidade</option>
         </select>
       </div>
       <div><label for="quality">GRÁFICOS</label>
@@ -62,6 +84,8 @@
         </select>
       </div>
     </div>
+    <label for="flight-date">DATA DO VOO</label>
+    <input id="flight-date" type="date" aria-label="Data do ciclo solar">
     <div class="time-header"><label for="time">HORA LOCAL</label><span id="time-value">14:00</span></div>
     <input id="time" type="range" min="5" max="22" step=".25" value="14" aria-label="Hora do dia">
     <div class="time-ticks"><span>AMANHECER</span><span>ANOITECER</span></div>
@@ -147,6 +171,7 @@
     </div>
   </div>
   <div id="result-overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="result-title"><div class="help-card result-card"><div class="eyebrow">◎ DESAFIO AÉREO</div><h2 id="result-title">PERCURSO CONCLUÍDO</h2><p id="result-detail"></p><div class="result-score" id="result-score">0</div><p id="record-label"></p><button id="retry-challenge" class="button-primary" type="button">TENTAR NOVAMENTE</button><button id="result-free" class="button-secondary" type="button">CONTINUAR NO VOO LIVRE</button></div></div>
+  <div id="geo-attribution" class="geo-attribution" aria-label="Atribuição dos dados geográficos">Elevação: <a href="https://registry.opendata.aws/terrain-tiles/" target="_blank" rel="noopener noreferrer">Mapzen Terrain Tiles / AWS Open Data</a> · Imagens: <a href="https://cloudless.eox.at/license-non-commercial" target="_blank" rel="noopener noreferrer">EOxCloudless 2024, contém dados Copernicus Sentinel modificados · CC BY-NC-SA 4.0</a> · Não é fotogrametria.</div>
   <div id="loading" aria-live="polite">CARREGANDO CENÁRIO DO RIO...</div>
   <script type="module" src="./src/main.js"></script>
 </body>
