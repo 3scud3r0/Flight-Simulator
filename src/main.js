@@ -541,9 +541,14 @@ function createOfflineAetheriaWorld(THREE,scene,renderer,{mobile=false,
  };
  const sampleHeight=(x,z)=>{
   const origin=nearest(x,z);
-  if(origin.distance<5200){
-   const a=origin.airport,t=Math.max(0,Math.min(1,
-    (origin.distance-1600)/3600));
+  if(origin.distance<5000){
+   const a=origin.airport,heading=a.heading*Math.PI/180;
+   const dx=x-a.x,dz=z-a.z;
+   const along=dx*Math.sin(heading)-dz*Math.cos(heading);
+   const lateral=dx*Math.cos(heading)+dz*Math.sin(heading);
+   const end=Math.max(0,Math.abs(along)-a.runways[0].length/2-190);
+   const side=Math.max(0,Math.abs(lateral)-280);
+   const t=Math.max(0,Math.min(1,Math.hypot(end,side)/1550));
    const blend=t*t*(3-2*t);
    return (a.elevation-1)*(1-blend)+baseHeight(x,z)*blend;
   }
