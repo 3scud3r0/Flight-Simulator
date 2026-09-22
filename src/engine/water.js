@@ -2,9 +2,9 @@
 import {clamp,lerp,vec,norm,dot} from "./math.js";
 export function gerstnerWaves(x,z,t,waves){
  let out=vec(x,0,z),dx=0,dz=0;
- for(const w of waves){const d=norm({x:w.dx||0,y:0,z:w.dz||1});
+ for(const w of waves){const d=norm({x:w.dx??0,y:0,z:w.dz??1});
  const k=2*Math.PI/Math.max(.01,w.wavelength),phase=k*(d.x*x+d.z*z)-1*(w.speed||1)*t;
- const amp=w.amplitude||0,q=clamp(w.steepness??.6,0,1);
+ const amp=Math.max(0,w.amplitude||0),q=clamp(w.steepness??.6,0,1);
  out.x+=q*amp*d.x*Math.cos(phase);out.y+=amp*Math.sin(phase);
  out.z+=q*amp*d.z*Math.cos(phase);
  dx+=amp*k*d.x*Math.cos(phase);dz+=amp*k*d.z*Math.cos(phase);
@@ -43,6 +43,7 @@ export function oceanSpectrum(kx,kz,wind,amplitude=.004){
  return amplitude*Math.exp(-1/(k*L)**2)/(k**4) *kw*kw*Math.exp(-k*k*.0003);
 }
 export function fresnelReflection(cosAngle,iorA=1,iorB=1.333){
+ if(iorA<=0||iorB<=0)throw RangeError("Refractive indices must be positive");
  const f0=((iorA-iorB)/(iorA+iorB))**2;
  return f0+(1-f0)*(1-clamp(cosAngle))**5;
 }
@@ -54,11 +55,11 @@ export function foamGeneration(slope,curvature,shoreDistance){
  Math.exp(-Math.max(0,shoreDistance)/9)*.72);
 }
 export function shoalingWaves(deepAmplitude,deepSpeed,depth){
- const c=Math.sqrt(9.81*Math.max(.05,depth)),factor=Math.sqrt(deepSpeed/Math.max(.2,c));
+ const c=Math.sqrt(9.81*Math.max(.05,depth)),factor=Math.sqrt(Math.max(0,deepSpeed)/Math.max(.2,c));
  return {amplitude:deepAmplitude*clamp(factor,.45,2.2),speed:c};
 }
 export function wakeField(x,z,time,{speed=20,width=12,amplitude=.9}={}){
- const behind=Math.max(0,-z+time*speed),spread=width+.13*behind;
+ const behind=Math.max(0,-z+time*speed),spread=Math.max(.01,width)+.13*behind;
  return amplitude*Math.exp(-1*(x/spread)**2)*Math.sin(behind*.36-time*1.2)*
  clamp(behind/10)*Math.exp(-behind/450);
 }
