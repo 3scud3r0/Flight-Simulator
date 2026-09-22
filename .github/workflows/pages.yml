@@ -49,6 +49,7 @@ jobs:
           npm install --no-save --no-package-lock --ignore-scripts --no-audit --no-fund three@0.180.0 playwright@1.55.0
           mkdir -p vendor
           cp node_modules/three/build/three.module.js vendor/three.module.js
+          cp node_modules/three/build/three.core.js vendor/three.core.js
           npx playwright install ffmpeg
       - name: Preparar Chromium real
         uses: browser-actions/setup-chrome@v1
@@ -71,6 +72,7 @@ jobs:
           cp index.html styles.css site/
           cp -R src site/
           cp vendor/three.module.js site/vendor/
+          cp vendor/three.core.js site/vendor/
           cp -R proof site/
       - name: Preparar GitHub Pages
         uses: actions/configure-pages@v5
