@@ -1,0 +1,43 @@
+name: Chromium WebGL proof
+
+on:
+  push:
+    branches: [fix/aetheria-startup-and-ui]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  chromium-webgl:
+    name: Real-world switch and screenshots
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned Three.js and browser driver
+        run: |
+          npm install --no-save --no-package-lock --ignore-scripts --no-audit --no-fund three@0.180.0 playwright@1.55.0
+          mkdir -p vendor
+          cp node_modules/three/build/three.module.js vendor/three.module.js
+      - uses: browser-actions/setup-chrome@v1
+        id: chrome
+        with:
+          chrome-version: stable
+      - name: Browser-tested WebGL flight + capture proof
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
+        run: node scripts/browser-smoke.mjs
+      - name: Upload real Chromium screenshots and video
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flight-simulator-webgl-proof
+          path: proof/
+          if-no-files-found: warn
+          retention-days: 14
