@@ -59,7 +59,9 @@ async function choose(page,value){
  assert.doesNotMatch(info,/Falha ao alternar mundo/i,info);
 }
 async function fly(page,file){
- await page.locator("#start").click();
+ if(await page.locator("#welcome").isVisible())
+  await page.locator("#start").click();
+ else await page.locator("#reset").click();
  await page.waitForFunction(()=>document.querySelector("#welcome")
   ?.classList.contains("hidden"),{timeout:20000});
  await page.waitForTimeout(1200);
@@ -70,7 +72,7 @@ try{
  await ready();
  browser=await chromium.launch({
   headless:true,
-  executablePath:process.env.CHROME_PATH||"/usr/bin/google-chrome",
+  executablePath:process.env.CHROME_PATH||chromium.executablePath(),
   args:["--no-sandbox","--disable-dev-shm-usage",
    "--enable-webgl","--enable-unsafe-swiftshader",
    "--use-gl=angle","--use-angle=swiftshader",
@@ -79,14 +81,14 @@ try{
   reducedMotion:"reduce"};
  // Demonstrate that the legacy Rio works independently.
  const rio=await browser.newPage(common);
- await load(rio,"?safe=1");
+ await load(rio,"?world=rio&safe=1");
  await fly(rio,"rio.png");
  assert.equal(await rio.locator("#world-select").inputValue(),"rio");
  await rio.close();
 
- // Lite does NOT fetch /src/aetheria.js. It runs from bundled main.js.
+ // Lite remains independent of the optional full renderer.
  const lite=await browser.newPage(common);
- await lite.route("**/src/aetheria.js**",route=>route.abort());
+ await lite.route("**/src/legacy/aetheria.js**",route=>route.abort());
  await load(lite,"?world=aetheria-lite&safe=1");
  await lite.waitForFunction(()=>document.querySelector("#world-select")
   ?.value==="aetheria-lite",{timeout:45000});
@@ -100,8 +102,18 @@ try{
    size:{width:1365,height:768}}});
  const full=await ctx.newPage();
  await load(full,""); // normal renderer, without the compatibility flag
+ await full.waitForFunction(()=>document.querySelector("#world-select")
+  ?.value==="aurora"&&document.querySelector("#airport")?.options.length===1,
+  {timeout:45000});
+ assert.equal(await full.locator("#airport option").count(),1);
+ assert.equal(await full.locator("#route option").count(),5);
  await full.screenshot({path:new URL("tela-inicial.png",proof).pathname});
- await choose(full,"aetheria");
+ await fly(full,"aurora-voo.png");
+ assert.match(await full.locator("#world-info").innerText(),/Aurora/i);
+ await full.locator("#world-select").selectOption("aetheria");
+ await full.waitForFunction(()=>document.querySelector("#world-select")
+  ?.value==="aetheria"&&!document.querySelector("#world-select").disabled,
+  {timeout:45000});
  const fullInfo=await full.locator("#world-info").innerText();
  assert.ok(fullInfo.includes("/25 blocos"),
   "The 25-tile full renderer should load, not the 9-tile fallback: "+fullInfo);
@@ -141,7 +153,7 @@ try{
  // Deliberately fail the optional full renderer: the Lite fallback must
  // still load, fly and allow Rio to be restored.
  const broken=await browser.newPage(common);
- await broken.route("**/src/aetheria.js**",route=>route.abort());
+ await broken.route("**/src/legacy/aetheria.js**",route=>route.abort());
  await load(broken,"");
  await choose(broken,"aetheria");
  assert.match(await broken.locator("#world-info").innerText(),
@@ -151,11 +163,11 @@ try{
 
  const report={
   passed:true,engine:"Chromium headless + WebGL",
-  screenshots:["tela-inicial.png","rio.png","aetheria-lite.png","aetheria-full.png",
+  screenshots:["tela-inicial.png","aurora-voo.png","rio.png","aetheria-lite.png","aetheria-full.png",
    "aetheria-cinematic.png","rio-restored.png",
    "aetheria-offline-recovery.png"],
   video:"aetheria-flight.webm",checks:[
-   "Rio original flight","Aetheria Lite without dynamic module",
+   "Aurora default world and flight","Rio original flight","Aetheria Lite without dynamic module",
    "Aetheria full renderer with >=12 imported real Kenney CC0 GLBs","Cinematic HUD and keyboard restore",
    "Region navigation","Return to Rio",
    "Forced full-renderer outage falls back to Lite"

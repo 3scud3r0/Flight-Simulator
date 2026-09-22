@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
   decodeTerrarium, lonToTile, latToTile, tileToLon, tileToLat,
   tileIndices, bilinear, terrainTileURL, imageTileURL
-} from "../src/real-terrain.js";
+} from "../src/legacy/real-terrain.js";
 import { isa, solarPosition, windAt } from "../src/atmosphere.js";
 import {
   qNormalize,qFromEuler,qRotate,qInverseRotate,

@@ -228,7 +228,7 @@ kbd{padding:4px 7px;min-width:23px;text-align:center;background:#1a3549;color:#a
 .brand strong{font-size:clamp(18px,2.1vw,26px);letter-spacing:.08em}
 .brand small{letter-spacing:.15em}
 .hud-toggle{font-size:21px}
-.world-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+.world-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
  gap:12px;margin:16px 0 12px}
 .world-choice{display:flex;flex-direction:column;min-width:0;padding:0;
  overflow:hidden;text-align:left;border:1px solid #36516b;
@@ -245,6 +245,10 @@ kbd{padding:4px 7px;min-width:23px;text-align:center;background:#1a3549;color:#a
  text-shadow:0 8px 20px #00182666}
 .world-choice-art:after{content:"";position:absolute;inset:auto 0 0;
  height:24px;background:linear-gradient(transparent,#081827)}
+.aurora-art{background:radial-gradient(circle at 76% 22%,#ffe4a1 0 8%,
+ transparent 9%),radial-gradient(ellipse at 36% 86%,#7ea37c 0 23%,
+ transparent 24%),radial-gradient(ellipse at 82% 94%,#d8c796 0 20%,
+ transparent 21%),linear-gradient(156deg,#99d4d4,#257b8c 52%,#0c455c)}
 .rio-art{background:radial-gradient(ellipse at 28% 75%,#568872 0 11%,
  transparent 12%),radial-gradient(ellipse at 70% 71%,#8daca3 0 18%,
  transparent 19%),linear-gradient(155deg,#17435c 10%,#2c7085 51%,
@@ -297,6 +301,11 @@ body.cinematic-mode :is(.topbar,.controls-panel,.map-panel,.hud,
  .mobile-controls,.challenge-hud,.crosshair,.warning,.footer-hint,
  #vignette,.geo-attribution){display:none!important}
 body.cinematic-mode #scene{cursor:none}
+@media(min-width:761px) and (max-width:950px){
+ .world-cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .world-choice-art{height:72px}
+ .world-choice-copy small{min-height:0}
+}
 @media(max-width:760px){
  .world-cards{grid-template-columns:1fr;gap:8px}
  .world-choice{flex-direction:row;min-height:95px}

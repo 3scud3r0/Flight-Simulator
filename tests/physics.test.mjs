@@ -5,7 +5,7 @@ import {
 } from "../src/physics.js";
 import {
   AIRPORTS, LANDMARKS, geo, toGeo, sampleHeight, isLand, shorelineLatitude
-} from "../src/world.js";
+} from "../src/legacy/world.js";
 
 test("all aircraft define physically meaningful and finite parameters", () => {
   for (const a of Object.values(AIRCRAFT)) {
@@ -76,4 +76,64 @@ test("nonpositive or invalid timestep does not modify state", () => {
   stepFlight(state, { elevator: 1 }, 0);
   stepFlight(state, { elevator: 1 }, NaN);
   assert.deepEqual(state, snapshot);
+});
+
+test("a slow frame integrates the entire interval in stable substeps", () => {
+  const slow = createFlight("cessna");
+  const fixed = createFlight("cessna");
+  const input = { elevator: .3, aileron: -.25, throttleDelta: -.1 };
+  stepFlight(slow, input, 1 / 6, 0);
+  for (let i = 0; i < 5; i++) stepFlight(fixed, input, 1 / 30, 0);
+  assert.deepEqual(slow, fixed);
+  assert.ok(slow.distance > createFlight("cessna").speed / 10);
+});
+
+test("wheels resist crosswind while parked and elevator rotates at takeoff speed", () => {
+  const a = AIRCRAFT.cessna;
+  const parked = createFlight("cessna", { y: a.clearance, speed: 0 });
+  parked.onGround = true;
+  parked.throttle = 0;
+  stepFlight(parked, { windX: 30, windZ: -20, elevator: 1 }, 1, 0);
+  assert.equal(parked.x, 0);
+  assert.equal(parked.z, 0);
+  assert.ok(parked.pitch < .02);
+
+  const departure = createFlight("cessna", { y: a.clearance, speed: 0 });
+  departure.onGround = true;
+  departure.throttle = 1;
+  for (let i = 0; i < 2400 && departure.onGround; i++) {
+    stepFlight(departure, { elevator: .75 }, 1 / 60, 0);
+  }
+  assert.equal(departure.onGround, false);
+  assert.ok(departure.speed >= a.rotationSpeed * .72);
+  assert.equal(departure.damaged, false);
+});
+
+test("touchdown distinguishes gentle landing and excessive descent", () => {
+  for (const [descent, damaged] of [[-2, false], [-8, true]]) {
+    const state = createFlight("cessna", { y: 2.2, speed: 25 });
+    state.verticalSpeed = descent;
+    state.throttle = 0;
+    for (let i = 0; i < 60 && !state.onGround; i++) {
+      stepFlight(state, { elevator: .2 }, 1 / 60, 0);
+    }
+    assert.equal(state.onGround, true);
+    assert.equal(state.damaged, damaged);
+    assert.equal(state.y, AIRCRAFT.cessna.clearance);
+    assert.equal(state.verticalSpeed, 0);
+  }
+});
+
+test("a gentle elevator flare reduces descent before touchdown", () => {
+  const plain = createFlight("cessna", { y: 8, speed: 34 });
+  plain.verticalSpeed = -3;
+  plain.throttle = 0;
+  const flare = structuredClone(plain);
+  for (let i = 0; i < 45; i++) {
+    stepFlight(plain, {}, 1 / 60, 0);
+    stepFlight(flare, { elevator: .5 }, 1 / 60, 0);
+  }
+  assert.ok(flare.verticalSpeed > plain.verticalSpeed + .5);
+  assert.ok(flare.y > plain.y);
+  assert.equal(flare.damaged, false);
 });
