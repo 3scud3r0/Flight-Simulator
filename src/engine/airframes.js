@@ -84,8 +84,8 @@ export function componentDamage(components,collision){
  for(const c of output){const dx=c.position.x-collision.position.x,
  dy=c.position.y-collision.position.y,dz=c.position.z-collision.position.z;
  const distance=Math.hypot(dx,dy,dz),exposure=Math.exp(
- -(distance/Math.max(1,collision.radius))**2);
- c.health=clamp(c.health-(collision.energy/Math.max(1,c.toughness))*exposure)}
+ -1*(distance/Math.max(1,collision.radius))**2);
+ c.health=clamp(c.health-1*(collision.energy/Math.max(1,c.toughness))*exposure)}
  return output;
 }
 export const algorithms=[parametricFuselage,airfoilWingMesh,aircraftLOD,
