@@ -397,7 +397,8 @@ export function createWorld(THREE, scene, renderer, compatibility = false) {
     const sky = new THREE.Color().setRGB(
       .04 + day * .59, .07 + day * .75, .15 + day * .79
     );
-    scene.background.copy(sky);
+    if (scene.background?.isColor) scene.background.copy(sky);
+    else scene.background = sky.clone();
     scene.fog.color.copy(sky);
     scene.fog.density = weather === "névoa" ? .00016 :
       weather === "nublado" ? .000055 : .000021;

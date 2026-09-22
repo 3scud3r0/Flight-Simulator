@@ -34,21 +34,24 @@ if (SAFE_MODE) {
 const loading = $("loading");
 const canvas = $("scene");
 let THREE;
-try {
-  THREE = await import("https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js");
-} catch (firstError) {
-  try {
-    THREE = await import("https://unpkg.com/three@0.180.0/build/three.module.js");
-  } catch (secondError) {
-    try {
-      THREE = await import("https://esm.sh/three@0.180.0");
-    } catch (thirdError) {
-      loading.textContent =
-        "Biblioteca 3D indisponível. Verifique a conexão/CDN ou tente o modo compatibilidade.";
-      throw new AggregateError(
-        [firstError, secondError, thirdError], "Three.js unavailable");
-    }
-  }
+const sources=[
+  // Published by the GitHub Pages workflow. Avoid external CDN outages
+  // and let the very same Three.js build be browser-tested before deploy.
+  "../vendor/three.module.js",
+  "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+  "https://unpkg.com/three@0.180.0/build/three.module.js",
+  "https://esm.sh/three@0.180.0"
+];
+const libraryErrors=[];
+for(const url of sources){
+  try{
+    THREE=await import(url);
+    break;
+  }catch(error){libraryErrors.push(error)}
+}
+if(!THREE){
+  loading.textContent="Biblioteca 3D indisponível. Abra o modo leve.";
+  throw new AggregateError(libraryErrors,"Three.js unavailable");
 }
 
 let renderer;
@@ -70,7 +73,7 @@ const clock = new THREE.Clock();
 const rioWorld = createWorld(THREE, scene, renderer, SAFE_MODE);
 const rioObjects = scene.children.slice();
 let world = rioWorld;
-let activeWorld = "rio", aetheriaModule = null, aetheriaWorld = null;
+let activeWorld = "rio", selectedWorld = "rio", aetheriaModule = null, aetheriaWorld = null;
 let AIRPORTS = RIO_AIRPORTS, LANDMARKS = RIO_LANDMARKS;
 const geo = (lat,lon) => activeWorld === "aetheria" ?
   {x:lon,z:lat} : rioGeo(lat,lon);
@@ -479,29 +482,247 @@ function fillAirportAndRouteControls() {
     region.value=a.regionId;
   }else{airport.value="SBRJ";route.value="0";}
 }
+/**
+ * Built-in offline Aetheria renderer. It is intentionally inside main.js:
+ * even a 404 for /src/aetheria.js cannot block Lite or destroy the Rio world.
+ * Full Aetheria still uses the richer optional renderer when available.
+ */
+function createOfflineAetheriaWorld(THREE,scene,renderer,{mobile=false,
+ compatibility=true}={}) {
+ const root=new THREE.Group();
+ root.name="Aetheria_Offline_Lite";
+ scene.add(root);
+ const tileSize=6000,radius=1,steps=mobile?10:14;
+ const tiles=new Map(),materials=new Set();
+ const groundMaterial=new THREE.MeshStandardMaterial({
+  color:0xffffff,vertexColors:true,roughness:.95,
+  side:THREE.DoubleSide});
+ const seaMaterial=new THREE.MeshStandardMaterial({
+  color:0x155774,roughness:.52,metalness:.04});
+ const sea=new THREE.Mesh(new THREE.PlaneGeometry(35000,35000),seaMaterial);
+ sea.rotation.x=-Math.PI/2;sea.position.y=-.8;root.add(sea);
+ const cloudMat=new THREE.MeshBasicMaterial({
+  color:0xddeaf1,transparent:true,opacity:.72,depthWrite:false});
+ const sun=new THREE.DirectionalLight(0xffe9d0,1.8);
+ const hemi=new THREE.HemisphereLight(0xc2e9ff,0x476754,.9);
+ sun.castShadow=false;scene.add(sun,sun.target,hemi);
+ const runwayGlow=new THREE.MeshBasicMaterial({color:0xf1f3d0,
+  opacity:0,transparent:true});
+ const runwayMaterial=new THREE.MeshStandardMaterial({
+  color:0x38424a,roughness:.93});
+ const stripeMaterial=new THREE.MeshBasicMaterial({color:0xf0f2e9});
+ const activeStructures=new THREE.Group();
+ root.add(activeStructures);
+ const nearest=(x,z)=>{
+  let best=null,d=Infinity;
+  for(const airport of AETHERIA_AIRPORTS){
+   const dist=Math.hypot(x-airport.x,z-airport.z);
+   if(dist<d){best=airport;d=dist}
+  }
+  return {airport:best,distance:d};
+ };
+ const baseHeight=(x,z)=>{
+  const region=aetheriaRegionAt(x,z);
+  const rolling=95*Math.sin(x*.000016+region.seed)*
+   Math.cos(z*.000017-region.seed);
+  const ridges=95*Math.abs(Math.sin(x*.000067)*
+   Math.cos(z*.000052));
+  const alpine=["alpine","glacial","fjord"].includes(region.biome);
+  const wet=["ocean","tropical"].includes(region.biome);
+  let height=region.elevation+rolling+
+    (alpine?7:1)*ridges;
+  if(wet)height=-15+
+    Math.max(0,Math.sin(x*.000024)+Math.cos(z*.000028))**2*65;
+  return Math.max(-80,Math.min(4400,height));
+ };
+ const sampleHeight=(x,z)=>{
+  const origin=nearest(x,z);
+  if(origin.distance<5200){
+   const a=origin.airport,t=Math.max(0,Math.min(1,
+    (origin.distance-1600)/3600));
+   const blend=t*t*(3-2*t);
+   return (a.elevation-1)*(1-blend)+baseHeight(x,z)*blend;
+  }
+  return baseHeight(x,z);
+ };
+ function clearGroup(group){
+  group.traverse(object=>{
+   if(object.isMesh)object.geometry?.dispose?.();
+  });
+  group.clear();
+ }
+ function airportVisual(a){
+  clearGroup(activeStructures);
+  const rw=a.runways[0],angle=-rw.heading*Math.PI/180,
+   heading=rw.heading*Math.PI/180;
+  const runway=new THREE.Mesh(new THREE.BoxGeometry(
+   rw.width,.65,rw.length),runwayMaterial);
+  runway.position.set(a.x,a.elevation-.5,a.z);
+  runway.rotation.y=angle;activeStructures.add(runway);
+  const forward={x:Math.sin(heading),z:-Math.cos(heading)};
+  for(let d=-rw.length/2+50;d<rw.length/2-30;d+=110){
+   const stripe=new THREE.Mesh(new THREE.BoxGeometry(
+    1.8,.05,30),stripeMaterial);
+   stripe.position.set(a.x+forward.x*d,a.elevation-.12,
+    a.z+forward.z*d);
+   stripe.rotation.y=angle;activeStructures.add(stripe);
+  }
+ }
+ function makeTile(ix,iz){
+  const N=steps,px=[],color=[],idx=[];
+  const originX=ix*tileSize,originZ=iz*tileSize;
+  for(let row=0;row<=N;row++)for(let col=0;col<=N;col++){
+   const x=originX+col/N*tileSize,z=originZ+row/N*tileSize,
+    y=sampleHeight(x,z);
+   const region=aetheriaRegionAt(x,z);
+   const rgb=new THREE.Color(region.landColor);
+   if(y<1)rgb.set(0x337f98);
+   else if(y>2200)rgb.lerp(new THREE.Color(0xd2e4e9),
+    Math.min(1,(y-2200)/900));
+   px.push(col/N*tileSize,y,row/N*tileSize);
+   color.push(rgb.r,rgb.g,rgb.b);
+   if(row<N&&col<N){
+    const i=row*(N+1)+col,j=i+N+1;
+    idx.push(i,j,i+1,i+1,j,j+1);
+   }
+  }
+  const geometry=new THREE.BufferGeometry();
+  geometry.setAttribute("position",
+    new THREE.Float32BufferAttribute(px,3));
+  geometry.setAttribute("color",
+    new THREE.Float32BufferAttribute(color,3));
+  geometry.setIndex(idx);geometry.computeVertexNormals();
+  const mesh=new THREE.Mesh(geometry,groundMaterial);
+  mesh.position.set(originX,0,originZ);root.add(mesh);
+  tiles.set(ix+":"+iz,mesh);
+ }
+ let iterations=0,disposed=false,activeAirport="",region=null;
+ function update(x,z){
+  if(disposed)return;
+  const ix=Math.floor(x/tileSize),iz=Math.floor(z/tileSize);
+  const wanted=[];
+  for(let a=-radius;a<=radius;a++)for(let b=-radius;b<=radius;b++)
+   wanted.push({x:ix+a,z:iz+b,d:a*a+b*b});
+  wanted.sort((a,b)=>a.d-b.d);
+  const keep=new Set(wanted.map(t=>t.x+":"+t.z));
+  for(const [key,mesh] of tiles)if(!keep.has(key)){
+   root.remove(mesh);mesh.geometry.dispose();tiles.delete(key);
+  }
+  // No more than one new mesh every five frames.
+  if(tiles.size===0||++iterations%5===0){
+   for(const tile of wanted)if(!tiles.has(tile.x+":"+tile.z)){
+    makeTile(tile.x,tile.z);break;
+   }
+  }
+  sea.position.x=x;sea.position.z=z;
+  region=aetheriaRegionAt(x,z);
+  const closest=nearest(x,z);
+  if(closest.distance<12000&&closest.airport.id!==activeAirport){
+   airportVisual(closest.airport);
+   activeAirport=closest.airport.id;
+  }else if(closest.distance>=12000&&activeAirport){
+   clearGroup(activeStructures);activeAirport="";
+  }
+ }
+ function updateEnvironment(hour,weather,dt){
+  const sunHeight=Math.max(.03,Math.sin((hour-5)/14*Math.PI));
+  sun.intensity=sunHeight*(weather==="nublado"?1.2:2.2);
+  hemi.intensity=.2+sunHeight*.8;
+  runwayGlow.opacity=sunHeight<.2?.9:0;
+  cloudMat.opacity=weather==="nublado"?.91:.7;
+ }
+ function dispose(){
+  if(disposed)return;
+  disposed=true;
+  for(const mesh of tiles.values())mesh.geometry.dispose();
+  tiles.clear();clearGroup(activeStructures);
+  root.removeFromParent();sea.geometry.dispose();
+  for(const material of [groundMaterial,seaMaterial,
+   cloudMat,runwayGlow,runwayMaterial,stripeMaterial])
+   material.dispose();
+  scene.remove(sun,sun.target,hemi);
+ }
+ return {root,sun,hemi,sea,cloudMat,runwayGlow,
+  airports:AETHERIA_AIRPORTS,landmarks:AETHERIA_LANDMARKS,
+  sampleHeight,update,updateEnvironment,dispose,
+  setRealTerrainEnabled(){},
+  get tileCount(){return tiles.size},
+  get tileLimit(){return 9},
+  get region(){return region},
+  get status(){return "Aetheria leve · "+
+    (region?.name||"megaplaneta")+" · terreno offline"}
+ };
+}
+function syncWorldChoices(value){
+  for(const option of document.querySelectorAll(".world-choice")){
+    const selected=option.dataset.world===value;
+    option.classList.toggle("is-active",selected);
+    option.setAttribute("aria-pressed",String(selected));
+  }
+}
+function setCinematic(enabled){
+  document.body.classList.toggle("cinematic-mode",enabled);
+  $("hud-toggle").setAttribute("aria-pressed",String(enabled));
+  $("hud-toggle").title=enabled?"Mostrar HUD (U)":"Ocultar HUD (U)";
+  $("hud-toggle").setAttribute("aria-label",
+    enabled?"Mostrar HUD e menus":"Ocultar HUD e menus");
+}
+function toggleCinematic(){setCinematic(
+  !document.body.classList.contains("cinematic-mode"))}
+$("hud-toggle").addEventListener("click",toggleCinematic);
+$("hud-restore").addEventListener("click",()=>setCinematic(false));
+document.querySelectorAll(".world-choice").forEach(option=>{
+  option.addEventListener("click",()=>{
+    if($("world-select").disabled)return;
+    changeWorld(option.dataset.world);
+  });
+});
+syncWorldChoices("rio");
 async function changeWorld(next) {
-  if(next!=="rio"&&next!=="aetheria")return;
-  if(next===activeWorld){
+  if(!["rio","aetheria","aetheria-lite"].includes(next))return;
+  const isAetheria=next!=="rio";
+  if(next===selectedWorld){
     $("welcome-world").value=$("world-select").value=next;
+    syncWorldChoices(next);
     return;
   }
   const token=++worldChangeToken,wasRunning=running,
     mode=$("game-mode").value;
   $("world-select").disabled=true;
   $("welcome-world").disabled=true;
-  $("world-info").textContent=next==="aetheria"?
+  $("start").disabled=true;
+  $("welcome-challenge").disabled=true;
+  $("start-runway").disabled=true;
+  for(const card of document.querySelectorAll(".world-choice"))
+    card.disabled=true;
+  $("world-info").textContent=isAetheria?
     "Preparando 20 regiões e 60 aeroportos fictícios…":
     "Reabrindo o Rio de Janeiro…";
   const priorPause=paused;
   paused=true;accumulator=0;
   let prepared=null;
   try{
-    if(next==="aetheria"){
-      aetheriaModule??=await import("./aetheria.js");
+    let usedFallback=false;
+    if(isAetheria){
+      const lite=next==="aetheria-lite"||SAFE_MODE;
+      $("quality").value=lite?"eco":"high";
+      if(!lite){
+        try{
+          // A failed or stale delayed module never blocks the fictional world.
+          aetheriaModule??=await import("./aetheria.js?v=0.5.1");
+        }catch(importError){
+          usedFallback=true;
+          $("quality").value="eco";
+          console.warn("[Flight Simulator] High quality unavailable; using offline Lite",
+            importError);
+        }
+      }
       if(token!==worldChangeToken)return;
-      prepared=aetheriaModule.createAetheriaWorld(
-        THREE,scene,renderer,{mobile:MOBILE_DEVICE,
-          compatibility:SAFE_MODE||$("quality").value==="eco"});
+      prepared=lite||usedFallback?
+        createOfflineAetheriaWorld(THREE,scene,renderer,
+          {mobile:MOBILE_DEVICE,compatibility:true}):
+        aetheriaModule.createAetheriaWorld(THREE,scene,renderer,
+          {mobile:MOBILE_DEVICE,compatibility:false});
     }
     if(token!==worldChangeToken){
       prepared?.dispose();return;
@@ -524,6 +745,7 @@ async function changeWorld(next) {
         "Rio restaurado · selecione o relevo na configuração.";
       terrainRequested=$("terrain-mode").value==="real";
     }else{
+      aetheriaWorld?.dispose();
       activeWorld="aetheria";
       aetheriaWorld=prepared;world=prepared;
       AIRPORTS=AETHERIA_AIRPORTS;
@@ -535,24 +757,33 @@ async function changeWorld(next) {
       scene.background=new THREE.Color(0x94c4d7);
       $("map-world-label").textContent="· AETHERIA";
       $("world-info").textContent=
-        "Aetheria · 20 regiões · 60 aeroportos · offline";
+        "Aetheria · 20 regiões · 60 aeroportos · "+
+        (usedFallback?"modo leve de recuperação":
+        next==="aetheria-lite"||SAFE_MODE?"modo leve":"qualidade máxima");
     }
-    activeWorld=next;
+    activeWorld=isAetheria?"aetheria":"rio";
+    selectedWorld=next;
     $("world-select").value=$("welcome-world").value=next;
+    syncWorldChoices(next);
     $("rio-terrain-options").hidden=next!=="rio";
-    $("aetheria-controls").hidden=next!=="aetheria";
+    $("aetheria-controls").hidden=!isAetheria;
     $("geo-attribution").hidden=next!=="rio";
-    $("welcome-title").innerHTML=next==="rio"?
-      "O RIO É<br><em>SEU CÉU.</em>":
-      "AETHERIA É<br><em>SEU MUNDO.</em>";
+    $("welcome-title").textContent="FLIGHT SIMULATOR";
     $("welcome-desc").textContent=next==="rio"?
       "Decole sobre a Baía de Guanabara, contorne o Pão de Açúcar e descubra o Rio de Janeiro em um simulador 3D feito para o navegador.":
       "Um mundo ficcional contínuo: 20 regiões interligadas, 60 aeroportos, cordilheiras, ilhas, megacidades, vulcões e geleiras. Sem downloads de satélite.";
     $("welcome-features").innerHTML=next==="rio"?
       "<span>◈ 3 AERONAVES</span><span>◈ 3 AEROPORTOS</span><span>◈ VOO LIVRE + DESAFIO</span>":
       "<span>◈ 20 REGIÕES</span><span>◈ 60 AEROPORTOS</span><span>◈ VOO LIVRE + DESAFIO</span>";
-    if(!SAFE_MODE)sky=createSky(THREE,scene,world,renderer,
-      next==="rio"?{lat:-22.93,lon:-43.21}:{lat:0,lon:0});
+    if(!SAFE_MODE){
+      try{
+        sky=createSky(THREE,scene,world,renderer,
+          next==="rio"?{lat:-22.93,lon:-43.21}:{lat:0,lon:0});
+      }catch(skyError){
+        sky=null;
+        console.warn("[Flight Simulator] Optional sky disabled",skyError);
+      }
+    }
     fillAirportAndRouteControls();
     buildMap();
     if(wasRunning)begin(false,mode);
@@ -569,13 +800,20 @@ async function changeWorld(next) {
       "Falha ao alternar mundo: "+(error?.message||"erro desconhecido");
     // The existing Rio world remains a fallback on first load failure.
     if(activeWorld==="rio"){
+      selectedWorld="rio";
       $("world-select").value=$("welcome-world").value="rio";
+      syncWorldChoices("rio");
     }
     paused=priorPause;
   }finally{
     if(token===worldChangeToken){
       $("world-select").disabled=false;
       $("welcome-world").disabled=false;
+      $("start").disabled=false;
+      $("welcome-challenge").disabled=false;
+      $("start-runway").disabled=false;
+      for(const card of document.querySelectorAll(".world-choice"))
+        card.disabled=false;
     }
   }
 }
@@ -886,6 +1124,10 @@ function handleKey(event, isDown) {
   if (isDown) keys.add(event.code);
   else keys.delete(event.code);
   if (!isDown || event.repeat) return;
+  if(event.code==="KeyU")toggleCinematic();
+  if(event.code==="Escape" &&
+    document.body.classList.contains("cinematic-mode"))
+      setCinematic(false);
   if (event.code === "KeyV") cycleCamera();
   if (event.code === "KeyC") begin(false, challenge ? "free" : "challenge");
   if (event.code === "KeyP" && running) togglePause();
@@ -967,7 +1209,7 @@ function animate(now) {
   if (sky) {
     const environment = sky.update(localDate, $("weather").value, dt, flight);
     environmentWind = environment.wind || environmentWind;
-    if(activeWorld==="aetheria") {
+    if(activeWorld==="aetheria" && aetheriaModule?.aetheriaWeatherAt) {
       const climate=aetheriaModule.aetheriaWeatherAt(
         flight.x,flight.z,secondsInFlight,$("weather").value);
       environmentWind=climate.wind;
@@ -995,8 +1237,9 @@ function animate(now) {
 }
 requestAnimationFrame(animate);
 const requestedWorld=new URLSearchParams(location.search).get("world");
-if(requestedWorld==="aetheria"){
-  setTimeout(()=>changeWorld("aetheria"),200);
+if(requestedWorld==="aetheria"||requestedWorld==="aetheria-lite"){
+  setTimeout(()=>changeWorld(
+    SAFE_MODE?"aetheria-lite":requestedWorld),200);
 }else if(!SAFE_MODE && $("terrain-mode").value==="real"){
   // Rio keeps the old DEM optional and starts after the first render.
   setTimeout(()=>{if(activeWorld==="rio")rebuildTerrain()},1200);

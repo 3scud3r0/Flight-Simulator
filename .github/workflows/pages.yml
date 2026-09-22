@@ -40,12 +40,46 @@ jobs:
     steps:
       - name: Obter código
         uses: actions/checkout@v4
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Instalar Three.js local e driver de navegador
+        run: |
+          npm install --no-save --no-package-lock --ignore-scripts --no-audit --no-fund three@0.180.0 playwright@1.55.0
+          mkdir -p vendor
+          cp node_modules/three/build/three.module.js vendor/three.module.js
+          cp node_modules/three/build/three.core.js vendor/three.core.js
+          npx playwright install ffmpeg
+      - name: Preparar Chromium real
+        uses: browser-actions/setup-chrome@v1
+        id: chrome
+        with:
+          chrome-version: stable
+      - name: Executar e registrar o voo real no navegador
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
+        run: node scripts/browser-smoke.mjs
+      - name: Publicar screenshots e vídeo do teste
+        uses: actions/upload-artifact@v4
+        with:
+          name: flight-simulator-webgl-proof
+          path: proof/
+          retention-days: 14
+      - name: Preparar artefato leve do site
+        run: |
+          mkdir -p site/vendor
+          cp index.html styles.css site/
+          cp -R src site/
+          cp vendor/three.module.js site/vendor/
+          cp vendor/three.core.js site/vendor/
+          cp -R proof site/
       - name: Preparar GitHub Pages
         uses: actions/configure-pages@v5
       - name: Publicar arquivos estáticos
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: site/
       - name: Implantar GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
