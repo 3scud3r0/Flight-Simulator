@@ -450,6 +450,150 @@ function pollController() {
     }
   }
 }
+function fillAirportAndRouteControls() {
+  const airport=$("airport"),route=$("route");
+  airport.replaceChildren();route.replaceChildren();
+  for(const a of AIRPORTS){
+    const option=document.createElement("option");
+    option.value=a.id;option.textContent=activeWorld==="rio"?
+      a.id+" · "+a.name:a.id+" · "+a.regionName+" · "+a.name;
+    airport.append(option);
+  }
+  LANDMARKS.forEach((p,i)=>{
+    const option=document.createElement("option");
+    option.value=String(i);option.textContent=p.name;
+    route.append(option);
+  });
+  if(activeWorld==="aetheria"){
+    const region=$("aetheria-region");
+    region.replaceChildren();
+    for(const place of AETHERIA_REGIONS){
+      const option=document.createElement("option");
+      option.value=place.id;option.textContent=place.name+
+        " · "+place.biome.toUpperCase();
+      region.append(option);
+    }
+    const a=AIRPORTS.find(item=>item.id==="AE-01")||AIRPORTS[0];
+    airport.value=a.id;
+    route.value=String(LANDMARKS.findIndex(p=>p.regionId===a.regionId));
+    region.value=a.regionId;
+  }else{airport.value="SBRJ";route.value="0";}
+}
+async function changeWorld(next) {
+  if(next!=="rio"&&next!=="aetheria")return;
+  if(next===activeWorld){
+    $("welcome-world").value=$("world-select").value=next;
+    return;
+  }
+  const token=++worldChangeToken,wasRunning=running,
+    mode=$("game-mode").value;
+  $("world-select").disabled=true;
+  $("welcome-world").disabled=true;
+  $("world-info").textContent=next==="aetheria"?
+    "Preparando 20 regiões e 60 aeroportos fictícios…":
+    "Reabrindo o Rio de Janeiro…";
+  const priorPause=paused;
+  paused=true;accumulator=0;
+  let prepared=null;
+  try{
+    if(next==="aetheria"){
+      aetheriaModule??=await import("./aetheria.js");
+      if(token!==worldChangeToken)return;
+      prepared=aetheriaModule.createAetheriaWorld(
+        THREE,scene,renderer,{mobile:MOBILE_DEVICE,
+          compatibility:SAFE_MODE||$("quality").value==="eco"});
+    }
+    if(token!==worldChangeToken){
+      prepared?.dispose();return;
+    }
+    terrainEngine?.dispose();terrainEngine=null;
+    rioWorld.setRealTerrainEnabled(false);
+    sky?.dispose();sky=null;
+    if(next==="rio"){
+      aetheriaWorld?.dispose();
+      aetheriaWorld=null;
+      world=rioWorld;AIRPORTS=RIO_AIRPORTS;
+      LANDMARKS=RIO_LANDMARKS;
+      MAP_SIZE=MAP_Z_SIZE=62000;
+      for(const item of rioObjects)item.visible=true;
+      scene.background=new THREE.Color(0xb2dbf0);
+      $("map-world-label").textContent="· RIO DE JANEIRO";
+      $("world-info").textContent=
+        "Rio de Janeiro · 3 aeroportos · relevo real opcional";
+      $("terrain-status").textContent=
+        "Rio restaurado · selecione o relevo na configuração.";
+      terrainRequested=$("terrain-mode").value==="real";
+    }else{
+      activeWorld="aetheria";
+      aetheriaWorld=prepared;world=prepared;
+      AIRPORTS=AETHERIA_AIRPORTS;
+      LANDMARKS=AETHERIA_LANDMARKS;
+      MAP_SIZE=AETHERIA_SIZE.width;
+      MAP_Z_SIZE=AETHERIA_SIZE.height;
+      for(const item of rioObjects)item.visible=false;
+      terrainRequested=false;
+      scene.background=new THREE.Color(0x94c4d7);
+      $("map-world-label").textContent="· AETHERIA";
+      $("world-info").textContent=
+        "Aetheria · 20 regiões · 60 aeroportos · offline";
+    }
+    activeWorld=next;
+    $("world-select").value=$("welcome-world").value=next;
+    $("rio-terrain-options").hidden=next!=="rio";
+    $("aetheria-controls").hidden=next!=="aetheria";
+    $("geo-attribution").hidden=next!=="rio";
+    $("welcome-title").innerHTML=next==="rio"?
+      "O RIO É<br><em>SEU CÉU.</em>":
+      "AETHERIA É<br><em>SEU MUNDO.</em>";
+    $("welcome-desc").textContent=next==="rio"?
+      "Decole sobre a Baía de Guanabara, contorne o Pão de Açúcar e descubra o Rio de Janeiro em um simulador 3D feito para o navegador.":
+      "Um mundo ficcional contínuo: 20 regiões interligadas, 60 aeroportos, cordilheiras, ilhas, megacidades, vulcões e geleiras. Sem downloads de satélite.";
+    $("welcome-features").innerHTML=next==="rio"?
+      "<span>◈ 3 AERONAVES</span><span>◈ 3 AEROPORTOS</span><span>◈ VOO LIVRE + DESAFIO</span>":
+      "<span>◈ 20 REGIÕES</span><span>◈ 60 AEROPORTOS</span><span>◈ VOO LIVRE + DESAFIO</span>";
+    if(!SAFE_MODE)sky=createSky(THREE,scene,world,renderer,
+      next==="rio"?{lat:-22.93,lon:-43.21}:{lat:0,lon:0});
+    fillAirportAndRouteControls();
+    buildMap();
+    if(wasRunning)begin(false,mode);
+    else spawn(false);
+    world.update?.(flight.x,flight.z,0);
+    resize();
+    updateHud();drawMap();
+    if(next==="rio"&&terrainRequested&&!SAFE_MODE)
+      setTimeout(()=>{if(activeWorld==="rio")rebuildTerrain()},900);
+  }catch(error){
+    prepared?.dispose();
+    console.error("[Aetheria] World switch failed",error);
+    $("world-info").textContent=
+      "Falha ao alternar mundo: "+(error?.message||"erro desconhecido");
+    // The existing Rio world remains a fallback on first load failure.
+    if(activeWorld==="rio"){
+      $("world-select").value=$("welcome-world").value="rio";
+    }
+    paused=priorPause;
+  }finally{
+    if(token===worldChangeToken){
+      $("world-select").disabled=false;
+      $("welcome-world").disabled=false;
+    }
+  }
+}
+$("world-select").addEventListener("change",event=>
+  changeWorld(event.target.value));
+$("welcome-world").addEventListener("change",event=>
+  changeWorld(event.target.value));
+$("aetheria-region").addEventListener("change",event=>{
+  if(activeWorld!=="aetheria")return;
+  const airport=AIRPORTS.find(a=>a.regionId===event.target.value);
+  const idx=LANDMARKS.findIndex(p=>p.regionId===event.target.value);
+  if(!airport)return;
+  $("airport").value=airport.id;
+  if(idx>=0)$("route").value=String(idx);
+  if(running)begin(false,$("game-mode").value);
+  else spawn(false);
+  world.update?.(flight.x,flight.z,0);
+});
 $("gamepad-enabled").addEventListener("change", () => { lastGamepadId = "_refresh"; });
 window.addEventListener("gamepadconnected", () => { lastGamepadId = "_refresh"; });
 window.addEventListener("gamepaddisconnected", () => { lastGamepadId = "_refresh"; });
