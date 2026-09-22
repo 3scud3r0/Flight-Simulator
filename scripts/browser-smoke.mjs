@@ -100,6 +100,7 @@ try{
    size:{width:1365,height:768}}});
  const full=await ctx.newPage();
  await load(full,""); // normal renderer, without the compatibility flag
+ await full.screenshot({path:new URL("tela-inicial.png",proof).pathname});
  await choose(full,"aetheria");
  const fullInfo=await full.locator("#world-info").innerText();
  assert.match(fullInfo,/qualidade máxima/i,
@@ -141,7 +142,7 @@ try{
 
  const report={
   passed:true,engine:"Chromium headless + WebGL",
-  screenshots:["rio.png","aetheria-lite.png","aetheria-full.png",
+  screenshots:["tela-inicial.png","rio.png","aetheria-lite.png","aetheria-full.png",
    "aetheria-cinematic.png","rio-restored.png",
    "aetheria-offline-recovery.png"],
   video:"aetheria-flight.webm",checks:[
