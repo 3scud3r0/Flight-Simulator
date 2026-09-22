@@ -2,7 +2,8 @@
 import {clamp,lerp,smooth,noise2,noise3,hash,vec,add,mul,norm,dot} from "./math.js";
 import {isa,windAt} from "../atmosphere.js";
 export function cloudRaymarch(ray,steps,field,{distance=8000,extinction=.035}={}){
- let transmittance=1,radiance=0;const ds=distance/Math.max(1,steps);
+ steps=Math.min(256,Math.max(1,Math.floor(steps)));
+ let transmittance=1,radiance=0;const ds=Math.max(0,distance)/steps;
  for(let i=0;i<steps;i++){const pos=add(ray.origin,mul(ray.direction,(i+.5)*ds));
  const density=clamp(field(pos)),atten=Math.exp(-density*extinction*ds);
  radiance+=transmittance*(1-atten);transmittance*=atten;
@@ -28,17 +29,18 @@ export function temporalReprojection(current,previous,motion,validity=.9){
  return current.map((x,i)=>lerp(x,previous[i]??x,t));
 }
 export function cloudShadowMap(densityAlongRay,steps=16){
+ steps=Math.min(256,Math.max(1,Math.floor(steps)));
  let opticalDepth=0;for(let i=0;i<steps;i++)opticalDepth+=
  Math.max(0,densityAlongRay((i+.5)/steps))/steps;
  return Math.exp(-opticalDepth*3.5);
 }
 export function cumulonimbusProfile(height,{base=1200,top=11000,energy=.8}={}){
- const h=clamp((height-base)/(top-base));
+ const h=clamp((height-base)/Math.max(1,top-base));
  const anvil=smooth((h-.68)/.29),body=Math.sin(Math.PI*h)**.55;
  return {density:clamp(body*energy),radius:lerp(250,1000,h)*(1+anvil*1.9),anvil};
 }
 export function evolveCloudCover(coverage,target,dt,formationSeconds=600){
- const a=1-Math.exp(-Math.max(0,dt)/formationSeconds);
+ const a=1-Math.exp(-Math.max(0,dt)/Math.max(.001,formationSeconds));
  return lerp(clamp(coverage),clamp(target),a);
 }
 export function thermalLapseRate(height,surfaceC=25,lapseKperKm=6.5){
@@ -58,7 +60,8 @@ export function windShear(lower,upper,verticalSeparation){
 }
 export function correlatedGust(previous,dt,random,{sigma=2,tau=5}={}){
  const a=Math.exp(-Math.max(0,dt)/Math.max(.01,tau));
- return a*previous+Math.sqrt(1-a*a)*sigma*(random()*2-1)*Math.sqrt(3);
+ sigma=Math.max(0,sigma);
+ return a*previous+Math.sqrt(Math.max(0,1-a*a))*sigma*(random()*2-1)*Math.sqrt(3);
 }
 export function orographicTurbulence(wind,terrainGradient,heightAboveGround){
  const uphill=wind.x*terrainGradient.x+wind.z*terrainGradient.z;
@@ -78,6 +81,7 @@ export function precipitationIntensity(cloudWater,updraft,tempC){
 }
 export function airframeIcing(tempC,liquidWater,airspeed,dt,current=0){
  const window=clamp((0-tempC)/8)*clamp((tempC+24)/13);
+ dt=Math.max(0,dt);
  return clamp(current+window*clamp(liquidWater)*Math.sqrt(Math.max(0,airspeed))/250*dt);
 }
 export function meteorologicalVisibility(humidity,rain,fog,dust){
@@ -88,7 +92,7 @@ export function meteorologicalVisibility(humidity,rain,fog,dust){
 export function movingWeatherFront(x,z,t,{x0=0,z0=0,vx=7,vz=2,width=4000}={}){
  const offset=(x-x0-vx*t)*vx+(z-z0-vz*t)*vz;
  const d=offset/Math.max(1,Math.hypot(vx,vz));
- const severity=smooth(.5-d/Math.max(1,width));
+ const severity=smooth(.5-d/Math.max(1,Math.abs(width)));
  return {severity,clouds:lerp(.2,.92,severity),rain:clamp((severity-.4)*2)};
 }
 export const algorithms=[cloudRaymarch,worleyPerlinCloud,cloudWeatherMap,
