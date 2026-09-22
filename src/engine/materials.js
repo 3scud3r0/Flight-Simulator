@@ -5,7 +5,7 @@ export function materialByBiome(altitude,humidity,temp,slope){
  desert=clamp((.35-humidity)*3)*clamp(temp/25),
  rock=clamp((slope-.58)*3)*(1-snow),
  vegetation=clamp(humidity*.9)*(1-snow)*(1-desert);
- const sand=desert,soil=(1-snow-rock)*(1-vegetation)*(1-desert);
+ const sand=desert,soil=Math.max(0,(1-snow-rock)*(1-vegetation)*(1-desert));
  const weights={snow,rock,vegetation,sand,soil};const t=Object.values(weights).reduce((a,b)=>a+b,0)||1;
  return Object.fromEntries(Object.entries(weights).map(([k,v])=>[k,v/t]));
 }
@@ -14,6 +14,7 @@ export function pbrMaterial({albedo=[.5,.5,.5],metallic=0,roughness=.8,ao=1,norm
  roughness:clamp(roughness,.04,1),ao:clamp(ao),normal};
 }
 export function normalMapFromHeight(height,x,y,step=1,strength=1){
+ step=Math.max(1e-6,Math.abs(step));
  const dx=(height(x+step,y)-height(x-step,y))/(2*step);
  const dy=(height(x,y+step)-height(x,y-step))/(2*step);
  const n=norm({x:-dx*strength,y:-dy*strength,z:1});return [n.x,n.y,n.z];
@@ -23,13 +24,15 @@ export function parallaxOcclusion(uv,view,readHeight,{layers=20,scale=.06}={}){
  let p={...uv},depth=0;
  const dir={x:view.x/Math.max(.1,Math.abs(view.z))*delta,
  y:view.y/Math.max(.1,Math.abs(view.z))*delta};
- while(depth<1){if(depth>=readHeight(p.x,p.y))break;
+ while(depth<1){if(depth>=clamp(readHeight(p.x,p.y)))break;
  p.x-=dir.x;p.y-=dir.y;depth+=1/steps}
  return {u:p.x,v:p.y,depth};
 }
 export function triplanarWeights(normal,sharpness=4){
+ sharpness=Math.max(.01,sharpness);
  const v=[Math.abs(normal.x)**sharpness,Math.abs(normal.y)**sharpness,
- Math.abs(normal.z)**sharpness],sum=v[0]+v[1]+v[2]||1;return v.map(a=>a/sum);
+ Math.abs(normal.z)**sharpness],sum=v[0]+v[1]+v[2];
+ return sum>1e-12?v.map(a=>a/sum):[0,1,0];
 }
 export function textureSplat(samples,weights){
  const n=Math.min(samples.length,weights.length);let total=0;
@@ -70,7 +73,7 @@ export function snowAccumulation(normal,altitude,temperature,precipitation){
  clamp((normal.y-.15)/.85)*clamp((altitude+100)/300));
 }
 export function microdetailBlend(base,detail,distance,maxDistance=150){
- const strength=1-smooth(distance/maxDistance);
+ const strength=1-smooth(Math.max(0,distance)/Math.max(1e-6,maxDistance));
  return base.map((v,i)=>lerp(v,detail[i]??v,strength));
 }
 export function seasonalVegetation(dayOfYear,latitude,moisture){
@@ -80,10 +83,10 @@ export function seasonalVegetation(dayOfYear,latitude,moisture){
  autumn:clamp((1-summer)*.7),leafDensity:clamp(.15+.85*summer)};
 }
 export function ecologicalSpecies(x,z,species,{altitude=0,temp=20,moisture=.5,seed=1}={}){
- const result=[];for(let i=0;i<species.length;i++){
- const s=species[i];const suitability=clamp(1-Math.abs(temp-s.temp)/s.tempRange)*
- clamp(1-Math.abs(moisture-s.moisture)/s.moistureRange)*
- clamp(1-Math.abs(altitude-s.altitude)/s.altitudeRange);
+ const result=[];for(let i=0;i<Math.min(50000,species.length);i++){
+ const s=species[i];const suitability=clamp(1-Math.abs(temp-s.temp)/Math.max(1e-6,s.tempRange))*
+ clamp(1-Math.abs(moisture-s.moisture)/Math.max(1e-6,s.moistureRange))*
+ clamp(1-Math.abs(altitude-s.altitude)/Math.max(1e-6,s.altitudeRange));
  if(hash(Math.floor(x),Math.floor(z),i,seed)<suitability*(s.density??.5))
  result.push({id:s.id,suitability})}return result;
 }
