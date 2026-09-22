@@ -333,7 +333,7 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
   const urban=["megacity","futuristic","industrial","historic"].includes(
     region.biome)||airport.category==="internacional";
   if(urban){
-    const count=compatibility?18:mobile?54:
+    const count=compatibility?10:mobile?22:
       region.biome==="megacity"||region.biome==="futuristic"?95:65;
     const palettes=region.biome==="futuristic"?
       [0x38405e,0x51577e,0x6c4c87,0x3f6581]:
@@ -347,11 +347,11 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
         emissiveIntensity:.38}),Math.ceil(count/palettes.length)));
     const sizes=new Int32Array(4);
     for(let i=0;i<count;i++){
-      const angle=random()*Math.PI*2,dist=3900+random()*8700;
+      const angle=random()*Math.PI*2,dist=1450+random()*3100;
       const x=airport.x+Math.cos(angle)*dist,
         z=airport.z+Math.sin(angle)*dist;
       // Keep runways and taxi approaches legible.
-      if(Math.abs(x-airport.x)<280&&Math.abs(z-airport.z)<3500)
+      if(Math.abs(x-airport.x)<340&&Math.abs(z-airport.z)<airport.runways[0].length/2+380)
         continue;
       const h=(region.biome==="megacity"||region.biome==="futuristic"?
         25+Math.pow(random(),1.9)*340:
@@ -445,8 +445,50 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
     surface+.55,airport.z+Math.sin(heading)*side*(rw.width/2-1));
    edge.rotation.y=angle;parent.add(edge);
   }
-  // Each biome creates its own ORIGINAL visual silhouette near airports.
-  // These are instanced meshes rather than hundreds of draw calls.
+  // Taxiway and paved apron connect the runway to imported CC0 hangars.
+  // Both follow the authored runway heading and share its elevation.
+  const right={x:Math.cos(heading),z:Math.sin(heading)};
+  const paved=new THREE.Group();
+  parent.add(paved);
+  const apron=new THREE.Mesh(new THREE.BoxGeometry(250,.65,410),
+    airportMat);
+  apron.rotation.y=angle;
+  apron.position.set(airport.x+right.x*205,surface,
+    airport.z+right.z*205);
+  paved.add(apron);
+  const taxi=new THREE.Mesh(new THREE.BoxGeometry(176,.65,24),
+    airportMat);
+  taxi.rotation.y=angle;
+  taxi.position.set(airport.x+right.x*101,surface,
+    airport.z+right.z*101);
+  paved.add(taxi);
+  const taxiLine=new THREE.Mesh(new THREE.BoxGeometry(175,.055,.45),
+    litMat);
+  taxiLine.rotation.y=angle;
+  taxiLine.position.set(taxi.position.x,surface+.37,
+    taxi.position.z);
+  paved.add(taxiLine);
+  for(const d of [-160,-80,0,80,160]){
+   const stand=new THREE.Mesh(new THREE.BoxGeometry(
+    45,.055,.55),stripeMat);
+   stand.rotation.y=angle;
+   stand.position.set(apron.position.x+f.x*d,surface+.38,
+    apron.position.z+f.z*d);
+   paved.add(stand);
+  }
+  // Threshold bars read clearly from the air even before GLBs arrive.
+  for(const d of [-rw.length/2+44,rw.length/2-44]){
+   for(const lateral of [-rw.width*.3,-rw.width*.15,
+    rw.width*.15,rw.width*.3]){
+    const bar=new THREE.Mesh(new THREE.BoxGeometry(
+     1.8,.055,26),stripeMat);
+    bar.rotation.y=angle;
+    bar.position.set(airport.x+f.x*d+right.x*lateral,
+     surface+.54,airport.z+f.z*d+right.z*lateral);
+    paved.add(bar);
+   }
+  }
+  // Far buildings now stay within the streamed 6 km scenery radius.
   decorateAirport(airport,parent,surface);
   // GPU instance batches instead of one draw call per edge light.
   const count=Math.ceil(rw.length/110);
