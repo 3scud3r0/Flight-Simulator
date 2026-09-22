@@ -178,7 +178,6 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
  if(typeof window!=="undefined"&&typeof THREE.TextureLoader==="function"){
   const texLoader=new THREE.TextureLoader();
   for(const [type,file] of [
-   ["earth","gravel_ground_01_diff_1k.png"],
    ["sand","aerial_beach_01_diff_1k.png"],
    ["rock","rocks_ground_06_diff_1k.png"],
    ["asphalt","aerial_asphalt_01_diff_1k.png"]])
@@ -285,7 +284,9 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
     x*.00041,z*.00041,{seed:COUNTRY_SEED,octaves:2});
    // Albedo PBR already contains dark detail; avoid multiplying it by
    // a second dark biome tint (which made the entire city look black).
-   color.lerp(new THREE.Color(0xffffff),.65);
+   // Keep earthy greens; PBR gravel albedo made the coast look black.
+   if(!["megacity","jungle"].includes(b.primary.biome))
+    color.lerp(new THREE.Color(0xffffff),.38);
    color.multiplyScalar(.96+slope*.07);
    verts.push(col/N*CELL,y,row/N*CELL);
    colors.push(color.r,color.g,color.b);
@@ -332,9 +333,8 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
     return(seed>>>0)/4294967296;};
   const urban=["megacity","futuristic","industrial","historic"].includes(
     region.biome)||airport.category==="internacional";
-  if(urban){
-    const count=compatibility?10:mobile?22:
-      region.biome==="megacity"||region.biome==="futuristic"?95:65;
+  if(urban&&!assets){
+    const count=compatibility?10:mobile?20:30;
     const palettes=region.biome==="futuristic"?
       [0x38405e,0x51577e,0x6c4c87,0x3f6581]:
       region.biome==="historic"?
