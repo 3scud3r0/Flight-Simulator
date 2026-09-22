@@ -48,7 +48,8 @@ try {
 let renderer;
 try {
   renderer = new THREE.WebGLRenderer({
-    canvas, antialias: true, alpha: false, powerPreference: "high-performance"
+    canvas, antialias: !SAFE_MODE && !MOBILE_DEVICE, alpha: false,
+    powerPreference: SAFE_MODE || MOBILE_DEVICE ? "low-power" : "high-performance"
   });
 } catch (error) {
   loading.textContent = "WebGL indisponível. Atualize o navegador e ative a aceleração gráfica.";
