@@ -1,14 +1,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
- MathCore as Math, Generation as G, Streaming as S, Materials as M,
+ MathCore as Core, Generation as G, Streaming as S, Materials as M,
  Lighting as L, Weather as W, Water as O, Dynamics as D,
  Airframes as A, Infrastructure as I, Experience as E, Performance as P
 } from "../src/engine/index.js";
 const approx=(a,b,tol=1e-5)=>assert.ok(Math.abs(a-b)<=tol,`${a} ≉ ${b}`);
 test("invalid grid shapes fail before allocating",()=>{
- assert.throws(()=>Math.grid(2.5,4,()=>1),RangeError);
- assert.throws(()=>Math.sampleGrid(new Float32Array(3),2,2,0,0),RangeError);
+ assert.throws(()=>Core.grid(2.5,4,()=>1),RangeError);
+ assert.throws(()=>Core.sampleGrid(new Float32Array(3),2,2,0,0),RangeError);
  assert.throws(()=>G.hydraulicErosion(new Float32Array(9),2.5,4),TypeError);
 });
 test("erosion preserves sediment and thermal mass",()=>{
