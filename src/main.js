@@ -4,6 +4,9 @@ import {
 import {
   AIRPORTS, LANDMARKS, geo, toGeo, sampleHeight, isLand, createWorld
 } from "./world.js";
+import { createCourse, createChallenge, stepChallenge, RING_COUNT } from "./challenge.js";
+import { createCourseVisual } from "./course-renderer.js";
+import { readGamepad, chooseGamepad } from "./gamepad.js";
 
 const $ = id => document.getElementById(id);
 const loading = $("loading");
@@ -43,6 +46,9 @@ let running = false, paused = false, helpWasPaused = false;
 let cameraMode = 0, hour = Number($("time").value);
 let mapVisible = true, audio = null, soundOn = false;
 let frame = 0, frameElapsed = 0, accumulator = 0, mapTimer = 0;
+let challenge = null, courseVisual = null, ringResults = [];
+let gamepadState = { connected: false, actions: [], buttons: [], aileron: 0, elevator: 0, rudder: 0, throttleDelta: 0, brake: false };
+let previousGamepadButtons = [], lastGamepadId = "";
 const FIXED_STEP = 1 / 60;
 const keys = new Set();
 const touch = { aileron: 0, elevator: 0, rudder: 0 };
@@ -146,6 +152,7 @@ function disposeAirplane(model) {
   model.materials.forEach(m => m.dispose());
 }
 function spawn(runway = false) {
+  clearChallenge();
   activeAircraft = $("aircraft").value;
   const a = AIRCRAFT[activeAircraft];
   const airport = AIRPORTS.find(i => i.id === $("airport").value) || AIRPORTS[0];
@@ -231,24 +238,87 @@ function toggleHelp(open) {
   $("pause-name").textContent = paused ? "RETOMAR" : "PAUSAR";
   keys.clear();
 }
-function begin(runway = false) {
-  spawn(runway); running = true; paused = false;
+function clearChallenge() {
+  if (courseVisual) courseVisual.dispose();
+  courseVisual = null;
+  challenge = null;
+  ringResults = [];
+  $("challenge-hud").classList.add("hidden");
+  $("challenge-feedback").textContent = "";
+}
+function updateChallengeHud() {
+  if (!challenge) return;
+  $("score").textContent = challenge.score.toLocaleString("pt-BR");
+  $("rings-count").textContent = challenge.next + " / " + challenge.rings.length;
+  const remaining = Math.ceil(challenge.timeLeft);
+  $("timer").textContent = String(Math.floor(remaining / 60)).padStart(2, "0") +
+    ":" + String(remaining % 60).padStart(2, "0");
+  $("combo").textContent = "COMBO ×" + Math.max(1, challenge.combo);
+  $("boost").textContent = challenge.boostLeft > 0
+    ? "IMPULSO +" + challenge.boostLeft.toFixed(1) + "s" : "IMPULSO INATIVO";
+  $("boost").classList.toggle("active", challenge.boostLeft > 0);
+  $("course-progress").style.width =
+    (challenge.next / challenge.rings.length * 100) + "%";
+}
+function finishChallenge(reason) {
+  if (!challenge || $("result-overlay").classList.contains("hidden") === false) return;
+  challenge.status = reason;
+  challenge.boostLeft = 0;
+  paused = true;
+  $("pause-name").textContent = "RETOMAR";
+  $("flight-status").textContent = "DESAFIO FINALIZADO";
+  $("result-title").textContent = reason === "complete"
+    ? "PERCURSO CONCLUÍDO" : reason === "timeout" ? "TEMPO ESGOTADO" : "VOO ENCERRADO";
+  $("result-detail").textContent = challenge.passed + " argolas corretas · " +
+    challenge.missed + " perdidas · " + Math.ceil(challenge.timeLeft) + " s restantes";
+  $("result-score").textContent = challenge.score.toLocaleString("pt-BR");
+  const key = "rio-flight-best-v1:" + activeAircraft;
+  let record = challenge.score;
+  try {
+    record = Math.max(Number(localStorage.getItem(key)) || 0, challenge.score);
+    localStorage.setItem(key, String(record));
+    $("record-label").textContent = "RECORDE DESTA AERONAVE: " +
+      record.toLocaleString("pt-BR") + " PONTOS · SALVO NESTE DISPOSITIVO";
+  } catch {
+    $("record-label").textContent = "Recorde local indisponível neste navegador.";
+  }
+  $("result-overlay").classList.remove("hidden");
+  $("retry-challenge").focus();
+}
+function begin(runway = false, requestedMode = $("game-mode").value) {
+  const mode = runway ? "free" : requestedMode;
+  $("game-mode").value = mode;
+  $("result-overlay").classList.add("hidden");
+  spawn(runway);
+  if (mode === "challenge") {
+    const rings = createCourse(flight, sampleHeight);
+    challenge = createChallenge(rings);
+    courseVisual = createCourseVisual(THREE, scene, rings);
+    ringResults = [];
+    $("challenge-hud").classList.remove("hidden");
+    updateChallengeHud();
+  }
+  running = true; paused = false;
   $("welcome").classList.add("hidden");
+  document.body.classList.remove("mobile-menu-open");
+  $("mobile-menu").setAttribute("aria-expanded", "false");
   $("pause-name").textContent = "PAUSAR";
-  $("flight-status").textContent = runway ? "PRONTO PARA DECOLAR" : "EM VOO";
+  $("flight-status").textContent = mode === "challenge"
+    ? "DESAFIO AÉREO" : runway ? "PRONTO PARA DECOLAR" : "EM VOO";
 }
 function pilotInput() {
   const press = (...codes) => codes.some(code => keys.has(code));
   return {
     elevator: clamp((press("KeyW", "ArrowUp") ? 1 : 0) -
-      (press("KeyS", "ArrowDown") ? 1 : 0) + touch.elevator, -1, 1),
+      (press("KeyS", "ArrowDown") ? 1 : 0) + touch.elevator + gamepadState.elevator, -1, 1),
     aileron: clamp((press("KeyD", "ArrowRight") ? 1 : 0) -
-      (press("KeyA", "ArrowLeft") ? 1 : 0) + touch.aileron, -1, 1),
+      (press("KeyA", "ArrowLeft") ? 1 : 0) + touch.aileron + gamepadState.aileron, -1, 1),
     rudder: clamp((press("KeyE") ? 1 : 0) -
-      (press("KeyQ") ? 1 : 0) + touch.rudder, -1, 1),
+      (press("KeyQ") ? 1 : 0) + touch.rudder + gamepadState.rudder, -1, 1),
     throttleDelta: (press("Equal", "NumpadAdd") ? .37 : 0) -
-      (press("Minus", "NumpadSubtract") ? .37 : 0),
-    brake: press("KeyB", "Space"),
+      (press("Minus", "NumpadSubtract") ? .37 : 0) + gamepadState.throttleDelta,
+    brake: press("KeyB", "Space") || gamepadState.brake,
+    boostAcceleration: challenge?.status === "running" && challenge.boostLeft > 0 ? 12 : 0,
     windX: $("weather").value === "vento" ? 5.5 : 0,
     windZ: $("weather").value === "vento" ? -3.8 : 0
   };
@@ -317,6 +387,7 @@ function updateHud() {
   $("bearing").textContent = String(
     (Math.round(deg(Math.atan2(dx, -dz))) + 360) % 360).padStart(3, "0") + "°";
   $("map-bearing").textContent = "N ↑";
+  updateChallengeHud();
   const warn = $("warning");
   warn.textContent = flight.damaged ? "POUSO BRUSCO — REINICIE O VOO" :
     flight.stall ? "STALL — REDUZA O ÂNGULO DE ATAQUE" :
@@ -324,7 +395,7 @@ function updateHud() {
   if (flight.onGround && flight.speed > 0 && !flight.damaged) {
     $("flight-status").textContent = "ROLAGEM NO SOLO";
   } else if (!paused && !flight.damaged) {
-    $("flight-status").textContent = "EM VOO";
+    $("flight-status").textContent = challenge ? "DESAFIO AÉREO" : "EM VOO";
   }
 }
 function resize() {
@@ -372,13 +443,31 @@ function setClockText() {
   $("time-value").textContent = String(Math.floor(minutes / 60)).padStart(2, "0") +
     ":" + String(minutes % 60).padStart(2, "0");
 }
-$("start").addEventListener("click", () => begin());
-$("start-runway").addEventListener("click", () => begin(true));
-$("takeoff").addEventListener("click", () => begin(true));
+$("start").addEventListener("click", () => begin(false, "free"));
+$("welcome-challenge").addEventListener("click", () => begin(false, "challenge"));
+$("start-challenge").addEventListener("click", () => begin(false, "challenge"));
+$("start-runway").addEventListener("click", () => begin(true, "free"));
+$("takeoff").addEventListener("click", () => begin(true, "free"));
 $("reset").addEventListener("click", () => begin(false));
+$("retry-challenge").addEventListener("click", () => begin(false, "challenge"));
+$("result-free").addEventListener("click", () => begin(false, "free"));
+$("game-mode").addEventListener("change", () => {
+  if ($("game-mode").value === "challenge") begin(false, "challenge");
+  else {
+    clearChallenge();
+    $("result-overlay").classList.add("hidden");
+    if (running) { paused = false; $("pause-name").textContent = "PAUSAR"; }
+  }
+});
 $("aircraft").addEventListener("change", () => spawn(false));
 $("airport").addEventListener("change", () => spawn(false));
 $("camera").addEventListener("click", cycleCamera);
+$("mobile-camera").addEventListener("click", cycleCamera);
+$("mobile-pause").addEventListener("click", () => { if (running) togglePause(); });
+$("mobile-menu").addEventListener("click", () => {
+  const opened = document.body.classList.toggle("mobile-menu-open");
+  $("mobile-menu").setAttribute("aria-expanded", String(opened));
+});
 $("pause").addEventListener("click", togglePause);
 $("help").addEventListener("click", () => toggleHelp(true));
 $("close-help").addEventListener("click", () => toggleHelp(false));
@@ -451,8 +540,9 @@ function handleKey(event, isDown) {
   else keys.delete(event.code);
   if (!isDown || event.repeat) return;
   if (event.code === "KeyV") cycleCamera();
+  if (event.code === "KeyC") begin(false, challenge ? "free" : "challenge");
   if (event.code === "KeyP" && running) togglePause();
-  if (event.code === "KeyR") begin(false);
+  if (event.code === "KeyR") begin(false, challenge ? "challenge" : "free");
   if (event.code === "KeyH") toggleHelp($("help-overlay").classList.contains("hidden"));
   if (event.code === "Escape" && !$("help-overlay").classList.contains("hidden")) toggleHelp(false);
   if (event.code === "KeyG") flight.gear = !flight.gear;
@@ -467,7 +557,10 @@ window.addEventListener("keyup", e => handleKey(e, false));
 window.addEventListener("blur", () => keys.clear());
 window.addEventListener("resize", resize);
 document.addEventListener("visibilitychange", () => {
-  if (document.hidden) keys.clear();
+  if (document.hidden) {
+    keys.clear();
+    if (running && challenge?.status === "running" && !paused) togglePause();
+  }
 });
 setClockText();
 buildMap();
@@ -483,15 +576,35 @@ function animate(now) {
     $("fps").textContent = Math.round(frame / frameElapsed) + " FPS";
     frame = 0; frameElapsed = 0;
   }
+  pollController();
   if (running && !paused && !$("help-overlay").classList.contains("hidden")) {
     accumulator = 0;
   } else if (running && !paused) {
     accumulator = Math.min(accumulator + dt, .15);
     const input = pilotInput();
     while (accumulator >= FIXED_STEP) {
+      const previous = { x: flight.x, y: flight.y, z: flight.z };
       stepFlight(flight, input, FIXED_STEP,
         Math.max(0, sampleHeight(flight.x, flight.z)));
       accumulator -= FIXED_STEP;
+      if (challenge?.status === "running") {
+        const events = stepChallenge(challenge, previous, flight, FIXED_STEP);
+        for (const event of events) {
+          if (event.type === "hit" || event.type === "miss") {
+            ringResults.push(event.type === "hit");
+            courseVisual.setProgress(challenge.next, ringResults);
+            $("challenge-feedback").textContent = event.type === "hit"
+              ? "+" + event.gained + " PTS · COMBO ×" + event.combo
+              : "ARGOLA PERDIDA · COMBO REINICIADO";
+            updateChallengeHud();
+          }
+          if (["complete", "timeout"].includes(event.type)) finishChallenge(event.type);
+        }
+        if (flight.damaged && challenge.status === "running") {
+          finishChallenge("crash");
+        }
+      }
+      if (paused) { accumulator = 0; break; }
     }
   }
   updateAirplane();
