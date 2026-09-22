@@ -95,6 +95,8 @@ export function createSky(THREE, scene, world, renderer, location = {
     world.sun.color.setHSL(.095 - .035 * twilight, .40, .84);
     moon.position.copy(world.sun.position).negate();
     moon.intensity = .16 * (1 - twilight);
+    if (world.runwayGlow) world.runwayGlow.opacity =
+      twilight < .28 ? .99 : .025;
     if (scene.fog) {
       navColor.setRGB(.05 + .55 * twilight,
         .07 + .68 * twilight, .13 + .70 * twilight);
