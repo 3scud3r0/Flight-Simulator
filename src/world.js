@@ -88,7 +88,7 @@ function rng(seed = 1597) {
   let n = seed >>> 0;
   return () => ((n = (Math.imul(n, 1664525) + 1013904223) >>> 0) / 4294967296);
 }
-function proceduralTexture(THREE, kind, size = 2048) {
+function proceduralTexture(THREE, kind, size = 512) {
   const c = document.createElement("canvas");
   c.width = c.height = size;
   const cx = c.getContext("2d");
@@ -100,7 +100,7 @@ function proceduralTexture(THREE, kind, size = 2048) {
   cx.fillStyle = `rgb(${base.join(",")})`;
   cx.fillRect(0, 0, size, size);
   const rand = rng(size + kind.length * 37);
-  for (let i = 0; i < size * 18; i++) {
+  for (let i = 0; i < size * 10; i++) {
     const shift = (rand() - 0.5) * (kind === "asphalt" ? 34 : 58);
     cx.fillStyle = `rgba(${shift > 0 ? 255 : 0},${shift > 0 ? 255 : 0},${shift > 0 ? 255 : 0},${Math.abs(shift) / 220})`;
     const x = rand() * size, y = rand() * size;
@@ -142,8 +142,9 @@ export function createWorld(THREE, scene, renderer) {
   // 2K on desktop; 1K on coarse-pointer mobile hardware to limit GPU memory.
   const mobile = typeof matchMedia === "function" &&
     matchMedia("(pointer: coarse)").matches;
+  // Small deterministic allocations first; advanced terrain streams later.
   const textureSize = Math.min(renderer.capabilities.maxTextureSize,
-    mobile ? 1024 : 2048);
+    mobile ? 256 : 512);
   const grass = proceduralTexture(THREE, "grass", textureSize);
   const asphalt = proceduralTexture(THREE, "asphalt", textureSize);
   const sand = proceduralTexture(THREE, "sand", textureSize);
@@ -154,7 +155,7 @@ export function createWorld(THREE, scene, renderer) {
   const groundMat = new THREE.MeshStandardMaterial({
     map: grass, vertexColors: true, roughness: 0.97, flatShading: false
   });
-  const segments = 300, span = 63000;
+  const segments = mobile ? 64 : 96, span = 63000;
   const vertices = [], colors = [], uvs = [], indices = [];
   const color = new THREE.Color();
   for (let row = 0; row <= segments; row++) {
@@ -198,7 +199,7 @@ export function createWorld(THREE, scene, renderer) {
 
   const runwayMat = new THREE.MeshStandardMaterial({ map: asphalt, roughness: .94 });
   const apronMat = new THREE.MeshStandardMaterial({
-    map: proceduralTexture(THREE, "concrete"), roughness: .98
+    map: proceduralTexture(THREE, "concrete", textureSize), roughness: .98
   });
   const lineWhite = new THREE.MeshBasicMaterial({ color: 0xf0eee1 });
   const lineYellow = new THREE.MeshBasicMaterial({ color: 0xf6b934 });
@@ -311,7 +312,7 @@ export function createWorld(THREE, scene, renderer) {
   const boxes = [[], [], [], [], []];
   for (const [lat, lon, sx, sz, count] of districts) {
     const origin = geo(lat, lon);
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < Math.round(count * (mobile ? .16 : .32)); i++) {
       const x = origin.x + (rand() - .5) * sx * 2;
       const z = origin.z + (rand() - .5) * sz * 2;
       const y = sampleHeight(x, z);
@@ -364,8 +365,9 @@ export function createWorld(THREE, scene, renderer) {
     color: 0xffffff, transparent: true, opacity: .83,
     depthWrite: false, roughness: 1
   });
-  const clouds = new THREE.InstancedMesh(cloudGeo, cloudMat, 155);
-  for (let i = 0; i < 155; i++) {
+  const cloudCount = mobile ? 32 : 64;
+  const clouds = new THREE.InstancedMesh(cloudGeo, cloudMat, cloudCount);
+  for (let i = 0; i < cloudCount; i++) {
     dummy.position.set((rand() - .5) * 53000, 1250 + rand() * 2100,
       (rand() - .5) * 53000);
     dummy.scale.set(220 + rand() * 360, 50 + rand() * 90, 125 + rand() * 210);
