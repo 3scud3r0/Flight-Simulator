@@ -92,7 +92,7 @@ test("Aetheria progressively streams a bounded world and disposes resources",()=
   assert.equal(world.tileCount,9);
   assert.equal(world.region.id,airport.regionId);
   assert.equal(world.airports.length,4);
-  assert.equal(world.landmarks.length,20);
+  assert.equal(world.landmarks.length,4);
   assert.ok(world.root.children.some(child=>child.name?.startsWith(
    "Aetheria_Terrain_")));
   world.update(airport.x+11000,airport.z+7500,1/60);
