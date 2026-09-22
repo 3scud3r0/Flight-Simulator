@@ -159,6 +159,32 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
  const material=new THREE.MeshStandardMaterial({
   vertexColors:true,map:soilTexture,roughness:.96,
   metalness:0,side:THREE.DoubleSide});
+ const groundMaterials=new Map(["earth","sand","rock","asphalt"].map(type=>
+  [type,new THREE.MeshStandardMaterial({vertexColors:true,
+   map:soilTexture,roughness:type==="asphalt"?.94:.99,
+   metalness:0,side:THREE.DoubleSide})]));
+ const pbrTextures=[];
+ let pbrReady=0;
+ if(typeof window!=="undefined"&&typeof THREE.TextureLoader==="function"){
+  const texLoader=new THREE.TextureLoader();
+  for(const [type,file] of [
+   ["earth","gravel_ground_01_diff_1k.png"],
+   ["sand","aerial_beach_01_diff_1k.png"],
+   ["rock","rocks_ground_06_diff_1k.png"],
+   ["asphalt","aerial_asphalt_01_diff_1k.png"]])
+    texLoader.load(new URL("../assets/pbr/"+file,import.meta.url).href,
+     texture=>{
+      if(!active){texture.dispose();return}
+      texture.colorSpace=THREE.SRGBColorSpace;
+      texture.wrapS=texture.wrapT=THREE.RepeatWrapping;
+      texture.repeat.set(35,35);
+      texture.anisotropy=Math.min(4,
+       renderer.capabilities.getMaxAnisotropy?.()||2);
+      const mat=groundMaterials.get(type);
+      mat.map=texture;mat.needsUpdate=true;
+      pbrTextures.push(texture);pbrReady++;
+     },undefined,()=>{});
+ }
  const waterMaterial=new THREE.MeshStandardMaterial({
   color:0x145778,roughness:.31,metalness:.05,transparent:true,opacity:.96});
  const sea=new THREE.Mesh(new THREE.PlaneGeometry(
@@ -235,7 +261,13 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
   geometry.setAttribute("uv",new THREE.Float32BufferAttribute(uv,2));
   geometry.setIndex(indices);
   geometry.computeVertexNormals();
-  const mesh=new THREE.Mesh(geometry,material);
+  const region=aetheriaRegionAt(baseX+CELL/2,baseZ+CELL/2);
+  const type=["tropical","desert","ocean"].includes(region.biome)?
+   "sand":["alpine","glacial","fjord","volcano","volcanic",
+    "canyon","polar","fantasy"].includes(region.biome)?
+     "rock":["megacity","futuristic","industrial","historic"].includes(
+      region.biome)?"asphalt":"earth";
+  const mesh=new THREE.Mesh(geometry,groundMaterials.get(type)||material);
   mesh.position.set(baseX,0,baseZ);
   mesh.receiveShadow=true;mesh.castShadow=false;
   mesh.name="Aetheria_Terrain_"+key;
@@ -453,7 +485,8 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
   }
   status="Aetheria · "+(currentRegion?.name||"Mundo")+
     " · "+tiles.size+"/"+((radius*2+1)**2)+" blocos"+
-    (assets?" · "+assets.count+" objetos CC0":"");
+    (assets?" · "+assets.count+" objetos CC0":"")+
+    (pbrReady?" · "+pbrReady+" materiais PBR":"");
  }
  function dispose(){
   active=false;clearTiles();
@@ -462,7 +495,10 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
   root.remove(sea);sea.geometry.dispose();
   disposeGroup(THREE,nature);
   disposeGroup(THREE,root);
-  waterMaterial.dispose();material.dispose();soilTexture.dispose();
+  waterMaterial.dispose();material.dispose();
+  for(const mat of groundMaterials.values())mat.dispose();
+  for(const texture of pbrTextures)texture.dispose();
+  soilTexture.dispose();
   airportMat.dispose();
   stripeMat.dispose();terminalMat.dispose();redMat.dispose();
   greenMat.dispose();litMat.dispose();runwayGlow.dispose();
@@ -476,6 +512,7 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
   get status(){return status},
   get tileLimit(){return (radius*2+1)**2},
   get assetCount(){return assets?.count??0},
-  get uniqueAssets(){return assets?.unique??0}
+  get uniqueAssets(){return assets?.unique??0},
+  get pbrCount(){return pbrReady}
  };
 }
