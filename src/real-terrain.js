@@ -189,25 +189,26 @@ export function createRealTerrain(THREE, scene, opts = {}) {
       onStatus(status);
       onReady(record);
       if (opts.imagery !== false) {
-        try {
-          const photo = await loadImage(imageTileURL(
-            record.z, record.x, record.y, provider, apiKey));
-          if (!disposed && tiles.has(record.key) && record.mesh) {
-            const texture = new THREE.Texture(photo);
-            texture.colorSpace = THREE.SRGBColorSpace;
-            texture.anisotropy = Math.min(8,
-              opts.renderer?.capabilities?.getMaxAnisotropy?.() || 4);
-            texture.needsUpdate = true;
-            record.texture = texture;
-            material.map = texture;
-            material.needsUpdate = true;
-          }
-        } catch {
-          // DEM still works if imagery is denied or the provider is offline.
+        // Do not occupy a scarce DEM worker while the photo loads.
+        // The image request is deliberately non-blocking and bounded.
+        loadImage(imageTileURL(
+          record.z, record.x, record.y, provider, apiKey
+        )).then(photo => {
+          if (disposed || !tiles.has(record.key) || !record.mesh) return;
+          const texture = new THREE.Texture(photo);
+          texture.colorSpace = THREE.SRGBColorSpace;
+          texture.anisotropy = Math.min(8,
+            opts.renderer?.capabilities?.getMaxAnisotropy?.() || 4);
+          texture.needsUpdate = true;
+          record.texture = texture;
+          material.map = texture;
+          material.needsUpdate = true;
+        }).catch(() => {
+          if (disposed || !tiles.has(record.key) || !record.mesh) return;
           material.color.set(0x71866b);
           status = "Relevo real ativo · algumas imagens indisponíveis";
           onStatus(status);
-        }
+        });
       }
     } catch {
       failures.add(record.key);
