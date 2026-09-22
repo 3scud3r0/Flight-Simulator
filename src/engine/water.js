@@ -25,7 +25,8 @@ function fft1d(real,imag,inverse=false){
  if(inverse)for(let i=0;i<N;i++){real[i]/=N;imag[i]/=N}
 }
 export function fftOceanSurface(spectrumReal,spectrumImag,N){
- if(spectrumReal.length!==N*N||spectrumImag.length!==N*N)throw RangeError("Spectrum size");
+ if(N<2||N>1024||(N&(N-1))||spectrumReal.length!==N*N||
+ spectrumImag.length!==N*N)throw RangeError("Spectrum must be a power-of-two 2D grid up to 1024²");
  const real=Float64Array.from(spectrumReal),imag=Float64Array.from(spectrumImag);
  for(let y=0;y<N;y++){
  const r=real.slice(y*N,(y+1)*N),m=imag.slice(y*N,(y+1)*N);
