@@ -68,7 +68,7 @@ export function orographicTurbulence(wind,terrainGradient,heightAboveGround){
  turbulence:Math.abs(uphill)*strength*.035};
 }
 export function thermalUpdraft(distanceToCore,height,{radius=220,base=0,top=2200,max=3.5}={}){
- const radial=Math.exp(-(distanceToCore/Math.max(1,radius))**2);
+ const radial=Math.exp(-1*(distanceToCore/Math.max(1,radius))**2);
  const vertical=Math.sin(Math.PI*clamp((height-base)/Math.max(1,top-base)));
  return max*radial*vertical;
 }
