@@ -90,7 +90,11 @@ export function createSky(THREE, scene, world, renderer, location = {
     uniforms.uDay.value = Math.max(-.2, dir.y);
     uniforms.uCloud.value = overcast;
     uniforms.uTime.value = time;
-    world.sun.position.set(dir.x * 18000, dir.y * 18000, dir.z * 18000);
+    const anchor = aircraft || {x:0,y:0,z:0};
+    world.sun.target.position.set(anchor.x,anchor.y,anchor.z);
+    world.sun.target.updateMatrixWorld();
+    world.sun.position.set(anchor.x + dir.x * 18000,
+      anchor.y + dir.y * 18000,anchor.z + dir.z * 18000);
     world.sun.intensity = (.04 + 2.5 * bright) * (1 - overcast * .78);
     world.sun.color.setHSL(.095 - .035 * twilight, .40, .84);
     moon.position.copy(world.sun.position).negate();
