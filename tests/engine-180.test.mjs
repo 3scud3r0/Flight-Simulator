@@ -172,3 +172,27 @@ test("resource pool and error fallback remain bounded",async()=>{
  async()=>{throw Error("offline")},()=>42,{attempts:2})();
  assert.equal(outcome,42);
 });
+
+test("bounded spatial trees terminate under worst-case uniform occupancy",()=>{
+ const q=Streaming.quadtree({x:0,y:0,size:1000},20,()=>100,1,30);
+ const o=Streaming.octree({x:0,y:0,z:0,size:1000},20,()=>1,30);
+ const count=n=>1+(n.children||[]).reduce((s,c)=>s+count(c),0);
+ assert.ok(count(q)<=30);
+ assert.ok(count(o)<=30);
+});
+test("duplicate worker jobs retain distinct output positions",async()=>{
+ const result=await Streaming.boundedWorkerPool([2,2,2],2,
+ async (_value,index)=>index*10);
+ assert.deepEqual(result,[0,10,20]);
+});
+test("virtual texture and vegetation algorithms enforce hard budgets",()=>{
+ const pages=Materials.virtualTexturePages({
+ left:-10000,top:-10000,right:10000,bottom:10000
+ },10,64,50);
+ assert.ok(pages.length<=50);
+ const plants=Infrastructure.vegetationDistribution({
+ x:0,z:0,width:100000,height:100000
+ },.5,()=>true,1,25);
+ assert.equal(plants.length,25);
+ assert.throws(()=>Water.fftOceanSurface([],[],4096),RangeError);
+});
