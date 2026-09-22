@@ -20,6 +20,7 @@ export function dynamicQualityBudget(metrics,quality){
  return q;
 }
 export function gpuTimeProfiling(samples){
+ const valid=samples.filter(Number.isFinite);
  const sorted=[...valid].sort((a,b)=>a-b),sum=valid.reduce((a,b)=>a+b,0);
  return {mean:sum/Math.max(1,valid.length),
  p95:sorted[Math.max(0,Math.ceil(.95*sorted.length)-1)]||0,
@@ -106,7 +107,7 @@ export function localTelemetry(frames){
 }
 export function errorRecovery(operation,fallback,{attempts=2}={}){
  return async()=>{let error;
- for(let i=0;i<Math.min(12,Math.max(1,Math.floor(attempts))));i++)try{return await operation(i)}
+ for(let i=0;i<Math.min(12,Math.max(1,Math.floor(attempts)));i++)try{return await operation(i)}
  catch(e){error=e}
  return fallback(error)};
 }
