@@ -15,6 +15,8 @@ import * as Generation from "./engine/generation.js";
 import * as Weather from "./engine/weather.js";
 import * as Infrastructure from "./engine/infrastructure.js";
 import {createAssetLibrary} from "./asset-library.js";
+import {createSceneryLayer} from "./scenery-renderer.js";
+import {terrainSubdivisions} from "./terrain-detail.js";
 
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
 const mix=(a,b,t)=>a+(b-a)*t;
@@ -234,6 +236,8 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
  const nature=new THREE.Group();root.add(nature);
  const assets=typeof window==="undefined"?null:
   createAssetLibrary(THREE,root,sampleAetheriaHeight,{mobile});
+ const scenery=createSceneryLayer(THREE,root,sampleAetheriaHeight,
+  {mobile,compatibility});
  const cloudMat=new THREE.MeshStandardMaterial({
   color:0xe9f0f4,transparent:true,opacity:.76,depthWrite:false,
   roughness:1});
@@ -266,10 +270,10 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
  let buildCounter=0,status="Gerando terreno ficcional…",currentRegion=null;
  let active=true,seconds=0,lastShadow=0;
  const airports=AETHERIA_AIRPORTS,landmarks=AETHERIA_LANDMARKS;
- function makeTile(ix,iz){
+ function makeTile(ix,iz,detail=subdivisions){
   const key=ix+":"+iz;if(tiles.has(key))return;
   const baseX=ix*CELL,baseZ=iz*CELL;
-  const N=subdivisions,verts=[],colors=[],uv=[],indices=[];
+  const N=detail,verts=[],colors=[],uv=[],indices=[];
   const color=new THREE.Color(),shore=new THREE.Color(0x1b7385);
   for(let row=0;row<=N;row++)for(let col=0;col<=N;col++){
    const x=baseX+col/N*CELL,z=baseZ+row/N*CELL;
@@ -311,10 +315,10 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
   mesh.position.set(baseX,0,baseZ);
   mesh.receiveShadow=true;mesh.castShadow=false;
   mesh.name="Aetheria_Terrain_"+key;
-  root.add(mesh);tiles.set(key,mesh);
+  root.add(mesh);tiles.set(key,{mesh,detail});
  }
  function clearTiles(){
-  for(const mesh of tiles.values()){root.remove(mesh);mesh.geometry.dispose()}
+  for(const {mesh} of tiles.values()){root.remove(mesh);mesh.geometry.dispose()}
   tiles.clear();
  }
  const airportMat=new THREE.MeshStandardMaterial({
@@ -525,6 +529,7 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
   cloudMat.opacity=weather==="nublado"?.96:.75;
   renderer.toneMappingExposure=.37+daylight*.87;
   runwayGlow.opacity=daylight<.22?.95:.03;
+  scenery.setDaylight(daylight);
   litMat.color.setRGB(.18+(1-daylight)*.82,
     .20+(1-daylight)*.81,.18+(1-daylight)*.77);
  }
@@ -535,20 +540,27 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
   for(let dz=-radius;dz<=radius;dz++)
    for(let dx=-radius;dx<=radius;dx++){
     const tx=ix+dx,tz=iz+dz;
-    desired.push({ix:tx,iz:tz,key:tx+":"+tz,dist:dx*dx+dz*dz});
+    desired.push({ix:tx,iz:tz,key:tx+":"+tz,
+     dist:dx*dx+dz*dz,
+     detail:terrainSubdivisions(dx,dz,{mobile,compatibility})});
    }
   desired.sort((a,b)=>a.dist-b.dist);
   const keep=new Set(desired.map(item=>item.key));
-  for(const [key,mesh] of tiles)if(!keep.has(key)){
+  for(const [key,{mesh}] of tiles)if(!keep.has(key)){
    root.remove(mesh);mesh.geometry.dispose();tiles.delete(key);
   }
   // Prewarm aircraft vicinity to avoid ocean-coloured holes at spawn.
   if(!tiles.size)for(const item of desired.slice(0,5))
-    makeTile(item.ix,item.iz);
+    makeTile(item.ix,item.iz,item.detail);
   else if(++buildCounter%4===0)
-    for(const item of desired)if(!tiles.has(item.key)){
-      makeTile(item.ix,item.iz);break;
+    for(const item of desired){
+     const old=tiles.get(item.key);
+     if(!old||old.detail!==item.detail){
+      if(old){root.remove(old.mesh);old.mesh.geometry.dispose();tiles.delete(item.key)}
+      makeTile(item.ix,item.iz,item.detail);break;
+     }
     }
+  scenery.update(x,z,tiles);
   if(Math.abs(lastCenterX-x)>500||Math.abs(lastCenterZ-z)>500){
    lastCenterX=x;lastCenterZ=z;
    sea.position.set(x,-.75,z);
@@ -568,10 +580,12 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
   status="Aetheria · "+(currentRegion?.name||"Mundo")+
     " · "+tiles.size+"/"+((radius*2+1)**2)+" blocos"+
     (assets?" · "+assets.count+" objetos CC0":"")+
-    (pbrReady?" · "+pbrReady+" materiais PBR":"");
+    (pbrReady?" · "+pbrReady+" materiais PBR":"")+
+    (scenery.count?" · "+scenery.count+" detalhes":"");
  }
  function dispose(){
   active=false;clearTiles();
+  scenery.dispose();
   assets?.dispose();
   disposeGroup(THREE,airportGroup);
   root.remove(sea);sea.geometry.dispose();
@@ -595,6 +609,8 @@ export function createAetheriaWorld(THREE,scene,renderer,{mobile=false,
   get tileLimit(){return (radius*2+1)**2},
   get assetCount(){return assets?.count??0},
   get uniqueAssets(){return assets?.unique??0},
-  get pbrCount(){return pbrReady}
+  get pbrCount(){return pbrReady},
+  get sceneryCount(){return scenery.count},
+  get sceneryTileCount(){return scenery.tileCount}
  };
 }
