@@ -650,17 +650,48 @@ function createOfflineAetheriaWorld(THREE,scene,renderer,{mobile=false,
     (region?.name||"megaplaneta")+" · terreno offline"}
  };
 }
+function syncWorldChoices(value){
+  for(const option of document.querySelectorAll(".world-choice")){
+    const selected=option.dataset.world===value;
+    option.classList.toggle("is-active",selected);
+    option.setAttribute("aria-pressed",String(selected));
+  }
+}
+function setCinematic(enabled){
+  document.body.classList.toggle("cinematic-mode",enabled);
+  $("hud-toggle").setAttribute("aria-pressed",String(enabled));
+  $("hud-toggle").title=enabled?"Mostrar HUD (U)":"Ocultar HUD (U)";
+  $("hud-toggle").setAttribute("aria-label",
+    enabled?"Mostrar HUD e menus":"Ocultar HUD e menus");
+}
+function toggleCinematic(){setCinematic(
+  !document.body.classList.contains("cinematic-mode"))}
+$("hud-toggle").addEventListener("click",toggleCinematic);
+$("hud-restore").addEventListener("click",()=>setCinematic(false));
+document.querySelectorAll(".world-choice").forEach(option=>{
+  option.addEventListener("click",()=>{
+    if($("world-select").disabled)return;
+    changeWorld(option.dataset.world);
+  });
+});
+syncWorldChoices("rio");
 async function changeWorld(next) {
   if(!["rio","aetheria","aetheria-lite"].includes(next))return;
   const isAetheria=next!=="rio";
   if(next===selectedWorld){
     $("welcome-world").value=$("world-select").value=next;
+    syncWorldChoices(next);
     return;
   }
   const token=++worldChangeToken,wasRunning=running,
     mode=$("game-mode").value;
   $("world-select").disabled=true;
   $("welcome-world").disabled=true;
+  $("start").disabled=true;
+  $("welcome-challenge").disabled=true;
+  $("start-runway").disabled=true;
+  for(const card of document.querySelectorAll(".world-choice"))
+    card.disabled=true;
   $("world-info").textContent=isAetheria?
     "Preparando 20 regiões e 60 aeroportos fictícios…":
     "Reabrindo o Rio de Janeiro…";
@@ -678,6 +709,7 @@ async function changeWorld(next) {
           aetheriaModule??=await import("./aetheria.js?v=0.5.1");
         }catch(importError){
           usedFallback=true;
+          $("quality").value="eco";
           console.warn("[Flight Simulator] High quality unavailable; using offline Lite",
             importError);
         }
@@ -710,6 +742,7 @@ async function changeWorld(next) {
         "Rio restaurado · selecione o relevo na configuração.";
       terrainRequested=$("terrain-mode").value==="real";
     }else{
+      aetheriaWorld?.dispose();
       activeWorld="aetheria";
       aetheriaWorld=prepared;world=prepared;
       AIRPORTS=AETHERIA_AIRPORTS;
@@ -728,6 +761,7 @@ async function changeWorld(next) {
     activeWorld=isAetheria?"aetheria":"rio";
     selectedWorld=next;
     $("world-select").value=$("welcome-world").value=next;
+    syncWorldChoices(next);
     $("rio-terrain-options").hidden=next!=="rio";
     $("aetheria-controls").hidden=!isAetheria;
     $("geo-attribution").hidden=next!=="rio";
@@ -765,12 +799,18 @@ async function changeWorld(next) {
     if(activeWorld==="rio"){
       selectedWorld="rio";
       $("world-select").value=$("welcome-world").value="rio";
+      syncWorldChoices("rio");
     }
     paused=priorPause;
   }finally{
     if(token===worldChangeToken){
       $("world-select").disabled=false;
       $("welcome-world").disabled=false;
+      $("start").disabled=false;
+      $("welcome-challenge").disabled=false;
+      $("start-runway").disabled=false;
+      for(const card of document.querySelectorAll(".world-choice"))
+        card.disabled=false;
     }
   }
 }
@@ -1081,6 +1121,10 @@ function handleKey(event, isDown) {
   if (isDown) keys.add(event.code);
   else keys.delete(event.code);
   if (!isDown || event.repeat) return;
+  if(event.code==="KeyU")toggleCinematic();
+  if(event.code==="Escape" &&
+    document.body.classList.contains("cinematic-mode"))
+      setCinematic(false);
   if (event.code === "KeyV") cycleCamera();
   if (event.code === "KeyC") begin(false, challenge ? "free" : "challenge");
   if (event.code === "KeyP" && running) togglePause();
