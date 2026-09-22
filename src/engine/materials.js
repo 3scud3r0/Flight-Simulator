@@ -37,12 +37,14 @@ export function textureSplat(samples,weights){
  for(let k=0;k<4;k++)c[k]+=(samples[i][k]??(k===3?1:0))*w}
  return c.map(v=>v/Math.max(total,1e-9));
 }
-export function virtualTexturePages(view,mips,pageSize=128){
- const pages=[];for(let mip=0;mip<mips;mip++){
+export function virtualTexturePages(view,mips,pageSize=128,maxPages=2048){
+ const pages=[];
+ for(let mip=0;mip<Math.min(20,mips)&&pages.length<maxPages;mip++){
  const scale=2**mip,x0=Math.floor(view.left/(pageSize*scale)),
  x1=Math.floor(view.right/(pageSize*scale)),
  y0=Math.floor(view.top/(pageSize*scale)),y1=Math.floor(view.bottom/(pageSize*scale));
- for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++)
+ for(let y=y0;y<=y1&&pages.length<maxPages;y++)
+ for(let x=x0;x<=x1&&pages.length<maxPages;x++)
  pages.push({mip,x,y,priority:1/(1+mip)})}
  return pages;
 }
