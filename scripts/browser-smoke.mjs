@@ -111,6 +111,13 @@ try{
   const match=text.match(/(\d+) objetos CC0/);
   return match&&Number(match[1])>=12;
  },null,{timeout:90000});
+ // Prove the new scenic subsystem actually arrived in the WebGL flight,
+ // rather than merely passing the pure placement tests.
+ await full.waitForFunction(()=>{
+  const info=document.querySelector("#world-info")?.textContent||"";
+  const count=Number(info.match(/(\\d+) detalhes/)?.[1]||0);
+  return count>0;
+ },null,{timeout:90000});
  await full.waitForTimeout(400);
  assert.equal(await full.locator("#airport option").count(),4);
  assert.equal(await full.locator("#aetheria-region option").count(),4);
