@@ -105,6 +105,13 @@ try{
  const fullInfo=await full.locator("#world-info").innerText();
  assert.ok(fullInfo.includes("/25 blocos"),
   "The 25-tile full renderer should load, not the 9-tile fallback: "+fullInfo);
+ // Wait for *real imported GLB geometry*, not placeholder boxes.
+ await full.waitForFunction(()=>{
+  const text=document.querySelector("#world-info")?.textContent||"";
+  const match=text.match(/(\d+) objetos CC0/);
+  return match&&Number(match[1])>=12;
+ },null,{timeout:90000});
+ await full.waitForTimeout(400);
  await fly(full,"aetheria-full.png");
  // Check the world moves and update loop has not frozen.
  await full.keyboard.down("Equal");
@@ -147,7 +154,7 @@ try{
    "aetheria-offline-recovery.png"],
   video:"aetheria-flight.webm",checks:[
    "Rio original flight","Aetheria Lite without dynamic module",
-   "Aetheria full renderer","Cinematic HUD and keyboard restore",
+   "Aetheria full renderer with >=12 imported real Kenney CC0 GLBs","Cinematic HUD and keyboard restore",
    "Region navigation","Return to Rio",
    "Forced full-renderer outage falls back to Lite"
   ]
