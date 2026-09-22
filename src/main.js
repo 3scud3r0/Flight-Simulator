@@ -2,8 +2,14 @@ import {
   AIRCRAFT, createFlight, stepFlight, clamp, rad, deg
 } from "./physics.js";
 import {
-  AIRPORTS, LANDMARKS, geo, toGeo, sampleHeight, isLand, createWorld
+  AIRPORTS as RIO_AIRPORTS, LANDMARKS as RIO_LANDMARKS,
+  geo as rioGeo, toGeo as rioToGeo,
+  sampleHeight as rioSampleHeight, createWorld
 } from "./world.js";
+import {
+  AETHERIA_AIRPORTS,AETHERIA_LANDMARKS,AETHERIA_REGIONS,
+  AETHERIA_SIZE,aetheriaRegionAt
+} from "./aetheria-data.js";
 import { createCourse, createChallenge, stepChallenge, RING_COUNT } from "./challenge.js";
 import { createCourseVisual } from "./course-renderer.js";
 import { readGamepad, chooseGamepad } from "./gamepad.js";
@@ -61,7 +67,16 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(64, 1, .6, 92000);
 const clock = new THREE.Clock();
-const world = createWorld(THREE, scene, renderer, SAFE_MODE);
+const rioWorld = createWorld(THREE, scene, renderer, SAFE_MODE);
+const rioObjects = scene.children.slice();
+let world = rioWorld;
+let activeWorld = "rio", aetheriaModule = null, aetheriaWorld = null;
+let AIRPORTS = RIO_AIRPORTS, LANDMARKS = RIO_LANDMARKS;
+const geo = (lat,lon) => activeWorld === "aetheria" ?
+  {x:lon,z:lat} : rioGeo(lat,lon);
+const toGeo = (x,z) => activeWorld === "aetheria" ?
+  {lat:z,lon:x} : rioToGeo(x,z);
+let worldChangeToken = 0;
 let sky = null, ocean = null;
 if (!SAFE_MODE) {
   sky = createSky(THREE, scene, world, renderer);
@@ -79,6 +94,11 @@ $("flight-date").value = brazilParts.year + "-" +
 let terrainEngine = null, terrainRequested = true, environmentWind = {x:0,y:0,z:0};
 let secondsInFlight = 0, lastEnvironment = 0;
 function rebuildTerrain() {
+  if(activeWorld!=="rio"){
+    $("terrain-status").textContent =
+      "Aetheria: geração original offline, sem DEM nem satélite.";
+    return;
+  }
   terrainEngine?.dispose();
   terrainEngine = null;
   world.setRealTerrainEnabled(false);
@@ -118,8 +138,9 @@ function rebuildTerrain() {
   if (flight) terrainEngine.update(flight.x, flight.z);
 }
 function terrainHeight(x,z) {
+  if(activeWorld==="aetheria")return world.sampleHeight(x,z);
   const actual = terrainRequested ? terrainEngine?.getHeight(x,z) : null;
-  return actual ?? sampleHeight(x,z);
+  return actual ?? rioSampleHeight(x,z);
 }
 loading.classList.add("hidden");
 
@@ -143,7 +164,7 @@ const mapCtx = $("map").getContext("2d");
 const mapImage = document.createElement("canvas");
 mapImage.width = mapImage.height = 320;
 const mapBackground = mapImage.getContext("2d");
-const MAP_SIZE = 62000;
+let MAP_SIZE = 62000, MAP_Z_SIZE = 62000;
 
 function mesh(group, geometry, material, x = 0, y = 0, z = 0) {
   const item = new THREE.Mesh(geometry, material);
@@ -248,7 +269,8 @@ function spawn(runway = false) {
     const panoramic = geo(-22.979, -43.227);
     options = { ...panoramic, y: 780, heading: rad(65) };
   } else {
-    options = { x: p.x - 1900, z: p.z + 2200, y: 850, heading: rad(airport.heading) };
+    options = { x: p.x - 1900, z: p.z + 2200,
+      y: Math.max(850,airport.elevation+650), heading: rad(airport.heading) };
   }
   flight = createFlight(activeAircraft, options);
   if (runway) {
@@ -354,7 +376,7 @@ function finishChallenge(reason) {
   $("result-detail").textContent = challenge.passed + " argolas corretas · " +
     challenge.missed + " perdidas · " + Math.ceil(challenge.timeLeft) + " s restantes";
   $("result-score").textContent = challenge.score.toLocaleString("pt-BR");
-  const key = "rio-flight-best-v1:" + activeAircraft;
+  const key = "rio-flight-best-v1:" + activeWorld + ":" + activeAircraft;
   let record = challenge.score;
   try {
     record = Math.max(Number(localStorage.getItem(key)) || 0, challenge.score);
@@ -428,6 +450,150 @@ function pollController() {
     }
   }
 }
+function fillAirportAndRouteControls() {
+  const airport=$("airport"),route=$("route");
+  airport.replaceChildren();route.replaceChildren();
+  for(const a of AIRPORTS){
+    const option=document.createElement("option");
+    option.value=a.id;option.textContent=activeWorld==="rio"?
+      a.id+" · "+a.name:a.id+" · "+a.regionName+" · "+a.name;
+    airport.append(option);
+  }
+  LANDMARKS.forEach((p,i)=>{
+    const option=document.createElement("option");
+    option.value=String(i);option.textContent=p.name;
+    route.append(option);
+  });
+  if(activeWorld==="aetheria"){
+    const region=$("aetheria-region");
+    region.replaceChildren();
+    for(const place of AETHERIA_REGIONS){
+      const option=document.createElement("option");
+      option.value=place.id;option.textContent=place.name+
+        " · "+place.biome.toUpperCase();
+      region.append(option);
+    }
+    const a=AIRPORTS.find(item=>item.id==="AE-01")||AIRPORTS[0];
+    airport.value=a.id;
+    route.value=String(LANDMARKS.findIndex(p=>p.regionId===a.regionId));
+    region.value=a.regionId;
+  }else{airport.value="SBRJ";route.value="0";}
+}
+async function changeWorld(next) {
+  if(next!=="rio"&&next!=="aetheria")return;
+  if(next===activeWorld){
+    $("welcome-world").value=$("world-select").value=next;
+    return;
+  }
+  const token=++worldChangeToken,wasRunning=running,
+    mode=$("game-mode").value;
+  $("world-select").disabled=true;
+  $("welcome-world").disabled=true;
+  $("world-info").textContent=next==="aetheria"?
+    "Preparando 20 regiões e 60 aeroportos fictícios…":
+    "Reabrindo o Rio de Janeiro…";
+  const priorPause=paused;
+  paused=true;accumulator=0;
+  let prepared=null;
+  try{
+    if(next==="aetheria"){
+      aetheriaModule??=await import("./aetheria.js");
+      if(token!==worldChangeToken)return;
+      prepared=aetheriaModule.createAetheriaWorld(
+        THREE,scene,renderer,{mobile:MOBILE_DEVICE,
+          compatibility:SAFE_MODE||$("quality").value==="eco"});
+    }
+    if(token!==worldChangeToken){
+      prepared?.dispose();return;
+    }
+    terrainEngine?.dispose();terrainEngine=null;
+    rioWorld.setRealTerrainEnabled(false);
+    sky?.dispose();sky=null;
+    if(next==="rio"){
+      aetheriaWorld?.dispose();
+      aetheriaWorld=null;
+      world=rioWorld;AIRPORTS=RIO_AIRPORTS;
+      LANDMARKS=RIO_LANDMARKS;
+      MAP_SIZE=MAP_Z_SIZE=62000;
+      for(const item of rioObjects)item.visible=true;
+      scene.background=new THREE.Color(0xb2dbf0);
+      $("map-world-label").textContent="· RIO DE JANEIRO";
+      $("world-info").textContent=
+        "Rio de Janeiro · 3 aeroportos · relevo real opcional";
+      $("terrain-status").textContent=
+        "Rio restaurado · selecione o relevo na configuração.";
+      terrainRequested=$("terrain-mode").value==="real";
+    }else{
+      activeWorld="aetheria";
+      aetheriaWorld=prepared;world=prepared;
+      AIRPORTS=AETHERIA_AIRPORTS;
+      LANDMARKS=AETHERIA_LANDMARKS;
+      MAP_SIZE=AETHERIA_SIZE.width;
+      MAP_Z_SIZE=AETHERIA_SIZE.height;
+      for(const item of rioObjects)item.visible=false;
+      terrainRequested=false;
+      scene.background=new THREE.Color(0x94c4d7);
+      $("map-world-label").textContent="· AETHERIA";
+      $("world-info").textContent=
+        "Aetheria · 20 regiões · 60 aeroportos · offline";
+    }
+    activeWorld=next;
+    $("world-select").value=$("welcome-world").value=next;
+    $("rio-terrain-options").hidden=next!=="rio";
+    $("aetheria-controls").hidden=next!=="aetheria";
+    $("geo-attribution").hidden=next!=="rio";
+    $("welcome-title").innerHTML=next==="rio"?
+      "O RIO É<br><em>SEU CÉU.</em>":
+      "AETHERIA É<br><em>SEU MUNDO.</em>";
+    $("welcome-desc").textContent=next==="rio"?
+      "Decole sobre a Baía de Guanabara, contorne o Pão de Açúcar e descubra o Rio de Janeiro em um simulador 3D feito para o navegador.":
+      "Um mundo ficcional contínuo: 20 regiões interligadas, 60 aeroportos, cordilheiras, ilhas, megacidades, vulcões e geleiras. Sem downloads de satélite.";
+    $("welcome-features").innerHTML=next==="rio"?
+      "<span>◈ 3 AERONAVES</span><span>◈ 3 AEROPORTOS</span><span>◈ VOO LIVRE + DESAFIO</span>":
+      "<span>◈ 20 REGIÕES</span><span>◈ 60 AEROPORTOS</span><span>◈ VOO LIVRE + DESAFIO</span>";
+    if(!SAFE_MODE)sky=createSky(THREE,scene,world,renderer,
+      next==="rio"?{lat:-22.93,lon:-43.21}:{lat:0,lon:0});
+    fillAirportAndRouteControls();
+    buildMap();
+    if(wasRunning)begin(false,mode);
+    else spawn(false);
+    world.update?.(flight.x,flight.z,0);
+    resize();
+    updateHud();drawMap();
+    if(next==="rio"&&terrainRequested&&!SAFE_MODE)
+      setTimeout(()=>{if(activeWorld==="rio")rebuildTerrain()},900);
+  }catch(error){
+    prepared?.dispose();
+    console.error("[Aetheria] World switch failed",error);
+    $("world-info").textContent=
+      "Falha ao alternar mundo: "+(error?.message||"erro desconhecido");
+    // The existing Rio world remains a fallback on first load failure.
+    if(activeWorld==="rio"){
+      $("world-select").value=$("welcome-world").value="rio";
+    }
+    paused=priorPause;
+  }finally{
+    if(token===worldChangeToken){
+      $("world-select").disabled=false;
+      $("welcome-world").disabled=false;
+    }
+  }
+}
+$("world-select").addEventListener("change",event=>
+  changeWorld(event.target.value));
+$("welcome-world").addEventListener("change",event=>
+  changeWorld(event.target.value));
+$("aetheria-region").addEventListener("change",event=>{
+  if(activeWorld!=="aetheria")return;
+  const airport=AIRPORTS.find(a=>a.regionId===event.target.value);
+  const idx=LANDMARKS.findIndex(p=>p.regionId===event.target.value);
+  if(!airport)return;
+  $("airport").value=airport.id;
+  if(idx>=0)$("route").value=String(idx);
+  if(running)begin(false,$("game-mode").value);
+  else spawn(false);
+  world.update?.(flight.x,flight.z,0);
+});
 $("gamepad-enabled").addEventListener("change", () => { lastGamepadId = "_refresh"; });
 window.addEventListener("gamepadconnected", () => { lastGamepadId = "_refresh"; });
 window.addEventListener("gamepaddisconnected", () => { lastGamepadId = "_refresh"; });
@@ -450,34 +616,61 @@ function pilotInput() {
   };
 }
 function buildMap() {
-  const step = 4;
-  for (let y = 0; y < 320; y += step) for (let x = 0; x < 320; x += step) {
-    const wx = (x / 320 - .5) * MAP_SIZE;
-    const wz = (y / 320 - .5) * MAP_SIZE;
-    const h = sampleHeight(wx, wz);
-    mapBackground.fillStyle = h < 0 ? "#155066" :
-      h > 350 ? "#385f49" : h > 80 ? "#527f56" : "#71887a";
-    mapBackground.fillRect(x, y, step, step);
+  mapBackground.clearRect(0,0,320,320);
+  const step = activeWorld === "aetheria" ? 8 : 4;
+  if(activeWorld === "aetheria") {
+    mapBackground.fillStyle = "#113b52";
+    mapBackground.fillRect(0,0,320,320);
+    // Biomes are a visual navigation atlas, NOT invented geographic photos.
+    for(const region of AETHERIA_REGIONS){
+      const p=mapXY(region);
+      const color=new THREE.Color(region.landColor);
+      mapBackground.fillStyle=color.getStyle();
+      mapBackground.globalAlpha=.82;
+      mapBackground.fillRect(p.x-32,p.y-40,64,80);
+      mapBackground.globalAlpha=1;
+      mapBackground.strokeStyle="#d1e8ec66";
+      mapBackground.strokeRect(p.x-32,p.y-40,64,80);
+      mapBackground.font="bold 9px sans-serif";
+      mapBackground.textAlign="center";
+      mapBackground.fillStyle="#e9f6f7";
+      mapBackground.fillText(region.name.toUpperCase(),p.x,p.y+2,62);
+    }
+    for(const a of AIRPORTS){
+      const p=mapXY(a);
+      mapBackground.fillStyle=a.category==="internacional"?
+        "#ffe89c":"#d1ebef";
+      mapBackground.fillRect(p.x-1.3,p.y-1.3,2.6,2.6);
+    }
+    mapBackground.textAlign="left";
+    return;
   }
-  mapBackground.strokeStyle = "#f0ce9c";
-  mapBackground.lineWidth = 1;
-  for (const a of AIRPORTS) {
-    const p = mapXY(geo(a.lat, a.lon));
-    mapBackground.beginPath(); mapBackground.arc(p.x, p.y, 4, 0, Math.PI * 2);
-    mapBackground.fillStyle = "#ffda92"; mapBackground.fill();
-    mapBackground.fillStyle = "#fff1c7";
-    mapBackground.font = "bold 11px sans-serif";
-    mapBackground.fillText(a.id, p.x + 6, p.y - 5);
+  for (let y=0;y<320;y+=step)for(let x=0;x<320;x+=step){
+    const wx=(x/320-.5)*MAP_SIZE,wz=(y/320-.5)*MAP_Z_SIZE;
+    const h=rioSampleHeight(wx,wz);
+    mapBackground.fillStyle=h<0?"#155066":
+      h>350?"#385f49":h>80?"#527f56":"#71887a";
+    mapBackground.fillRect(x,y,step,step);
+  }
+  mapBackground.strokeStyle="#f0ce9c";
+  mapBackground.lineWidth=1;
+  for(const a of AIRPORTS){
+    const p=mapXY(geo(a.lat,a.lon));
+    mapBackground.beginPath();mapBackground.arc(p.x,p.y,4,0,Math.PI*2);
+    mapBackground.fillStyle="#ffda92";mapBackground.fill();
+    mapBackground.fillStyle="#fff1c7";
+    mapBackground.font="bold 11px sans-serif";
+    mapBackground.fillText(a.id,p.x+6,p.y-5);
   }
 }
 function mapXY(p) {
   return { x: (p.x / MAP_SIZE + .5) * 320,
-    y: (p.z / MAP_SIZE + .5) * 320 };
+    y: (p.z / MAP_Z_SIZE + .5) * 320 };
 }
 function drawMap() {
   mapCtx.clearRect(0, 0, 320, 320);
   mapCtx.drawImage(mapImage, 0, 0);
-  const target = LANDMARKS[Number($("route").value)];
+  const target = LANDMARKS[Number($("route").value)] || LANDMARKS[0];
   const tp = mapXY(geo(target.lat, target.lon));
   const own = mapXY(flight);
   mapCtx.strokeStyle = "#b0ebf6"; mapCtx.lineWidth = 1.5;
@@ -504,9 +697,11 @@ function updateHud() {
   $("gear").textContent = flight.gear ? "GEAR ▾" : "GEAR ▴";
   $("gear").style.color = flight.gear ? "#78e9b9" : "#fbd38d";
   $("flaps").textContent = "FLAPS " + (flight.flaps * 100) + "%";
-  $("coords").textContent = Math.abs(gps.lat).toFixed(2) + "°S · " +
+  $("coords").textContent = activeWorld==="aetheria" ?
+    "X "+(flight.x/1000).toFixed(0)+" KM · Z "+(flight.z/1000).toFixed(0)+" KM" :
+    Math.abs(gps.lat).toFixed(2) + "°S · " +
     Math.abs(gps.lon).toFixed(2) + "°W";
-  const target = LANDMARKS[Number($("route").value)];
+  const target = LANDMARKS[Number($("route").value)] || LANDMARKS[0];
   const p = geo(target.lat, target.lon);
   const dx = p.x - flight.x, dz = p.z - flight.z;
   $("distance").textContent = (Math.hypot(dx, dz) / 1852).toFixed(1) + " NM";
@@ -589,8 +784,22 @@ $("game-mode").addEventListener("change", () => {
     if (running) { paused = false; $("pause-name").textContent = "PAUSAR"; }
   }
 });
-$("aircraft").addEventListener("change", () => spawn(false));
-$("airport").addEventListener("change", () => spawn(false));
+$("aircraft").addEventListener("change", () => {
+  if(running)begin(false,$("game-mode").value);
+  else spawn(false);
+});
+$("airport").addEventListener("change", () => {
+  if(activeWorld==="aetheria"){
+    const airport=AIRPORTS.find(a=>a.id===$("airport").value);
+    if(airport){
+      $("aetheria-region").value=airport.regionId;
+      const idx=LANDMARKS.findIndex(p=>p.regionId===airport.regionId);
+      if(idx>=0)$("route").value=String(idx);
+    }
+  }
+  if(running)begin(false,$("game-mode").value);
+  else spawn(false);
+});
 $("camera").addEventListener("click", cycleCamera);
 $("mobile-camera").addEventListener("click", cycleCamera);
 $("mobile-pause").addEventListener("click", () => { if (running) togglePause(); });
@@ -750,6 +959,7 @@ function animate(now) {
   }
   updateAirplane();
   world.updateEnvironment(hour, $("weather").value, dt);
+  if(activeWorld==="aetheria")world.update(flight.x,flight.z,dt);
   const hourText = $("time-value").textContent;
   const localDate = new Date(
     ($("flight-date").value || "2026-09-22") +
@@ -757,14 +967,26 @@ function animate(now) {
   if (sky) {
     const environment = sky.update(localDate, $("weather").value, dt, flight);
     environmentWind = environment.wind || environmentWind;
+    if(activeWorld==="aetheria") {
+      const climate=aetheriaModule.aetheriaWeatherAt(
+        flight.x,flight.z,secondsInFlight,$("weather").value);
+      environmentWind=climate.wind;
+    }
     ocean?.update(dt, environment.sun.vector, $("weather").value);
+    if(ocean&&activeWorld==="aetheria"){
+      ocean.surface.position.x=flight.x;
+      ocean.surface.position.z=flight.z;
+    }
   }
-  terrainEngine?.update(flight.x, flight.z);
+  if(activeWorld==="rio")terrainEngine?.update(flight.x, flight.z);
   updateCamera(dt);
   if (mapTimer >= .18) {
     mapTimer = 0;
     updateHud();
     drawMap();
+    if(activeWorld==="aetheria")
+      $("world-info").textContent=world.status+
+        " · 60 aeroportos · "+world.tileCount+"/"+world.tileLimit+" blocos";
     $("touch-throttle").value = Math.round(flight.throttle * 100);
   }
   updateAudio();
@@ -772,9 +994,12 @@ function animate(now) {
   requestAnimationFrame(animate);
 }
 requestAnimationFrame(animate);
-if (!SAFE_MODE && $("terrain-mode").value === "real") {
-  // A later macrotask lets browsers paint the menu/cockpit first.
-  setTimeout(rebuildTerrain, 1200);
-} else {
-  $("terrain-status").textContent = "Modo leve ativo · cenário disponível.";
+const requestedWorld=new URLSearchParams(location.search).get("world");
+if(requestedWorld==="aetheria"){
+  setTimeout(()=>changeWorld("aetheria"),200);
+}else if(!SAFE_MODE && $("terrain-mode").value==="real"){
+  // Rio keeps the old DEM optional and starts after the first render.
+  setTimeout(()=>{if(activeWorld==="rio")rebuildTerrain()},1200);
+}else{
+  $("terrain-status").textContent="Modo leve ativo · cenário disponível.";
 }

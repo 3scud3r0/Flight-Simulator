@@ -1,4 +1,17 @@
-# RIO FLIGHT ✦
+# Flight Simulator — Rio + Aetheria
+
+**Dois mundos selecionáveis no mesmo simulador.** O **Rio de Janeiro** foi preservado como cenário separado; **Aetheria** é um mundo 100% ficcional e original de 20 regiões contínuas, 60 aeroportos AE-01–AE-60, altitude e biomas procedurais, vegetação/arquitetura instanciadas e carregamento progressivo. Nenhuma imagem orbital ou dado real do Rio é utilizado no megamapa.
+
+**Abrir Aetheria:** https://3scud3r0.github.io/Flight-Simulator/?world=aetheria
+
+**Abrir Rio:** https://3scud3r0.github.io/Flight-Simulator/
+
+**Modo compatibilidade Aetheria:** https://3scud3r0.github.io/Flight-Simulator/?world=aetheria&safe=1
+
+O endereço do GitHub Pages só funcionará quando a implantação estiver ativa. Detalhes da rede, limitações e uso correto do motor de 180 algoritmos: [docs/AETHERIA.md](docs/AETHERIA.md).
+
+---
+
 
 **Simulador de voo 3D para navegador.** O Rio de Janeiro pode utilizar DEM verdadeiro + imagens orbitais quando o serviço responde; sem esses dados, há um cenário artístico de reserva. Fotogrametria urbana real ainda não está incluída.
 

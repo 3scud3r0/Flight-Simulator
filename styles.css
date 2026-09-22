@@ -201,3 +201,25 @@ kbd{padding:4px 7px;min-width:23px;text-align:center;background:#1a3549;color:#a
 
 .safe-link{display:block;margin:12px auto 0;color:#a8dfee;font-size:11px;text-decoration:underline;text-underline-offset:3px}
 .safe-link:hover,.safe-link:focus-visible{color:#fff}
+
+/* Separate worlds: keep Rio controls invisible in Aetheria and vice versa. */
+#rio-terrain-options[hidden],#aetheria-controls[hidden],
+#geo-attribution[hidden],#welcome-world[hidden]{display:none!important}
+.world-info{margin:7px 0 12px;padding:9px 11px;border-radius:5px;
+  border:1px solid rgba(108,221,222,.2);background:rgba(13,79,95,.22);
+  color:#9ce6dd;font-size:11px;line-height:1.5}
+.world-hint{color:#a4c1cb;font-size:10px;line-height:1.55;margin:5px 0 12px}
+#world-select,#aetheria-region{width:100%}
+.world-welcome-label{display:block;color:#9ee1e6;font-size:11px;
+  font-weight:700;letter-spacing:.14em;margin:12px 0 7px}
+.world-welcome-select{display:block;width:min(100%,410px);
+  margin:0 auto 14px;padding:12px;background:rgba(3,23,36,.94);
+  border:1px solid rgba(132,220,233,.56);border-radius:7px;
+  color:#e3f8fd;font-size:12px;font-weight:700;letter-spacing:.045em}
+.world-welcome-select:focus-visible{outline:2px solid #a4f5e7;
+  outline-offset:2px}
+#world-select:disabled,#welcome-world:disabled{opacity:.6}
+@media(max-width:650px){
+ .world-welcome-select{padding:10px;font-size:11px}
+ .world-info{font-size:10px;padding:7px}
+}

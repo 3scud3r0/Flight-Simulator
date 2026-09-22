@@ -28,12 +28,25 @@
 
   <aside id="control-panel" class="panel controls-panel" aria-label="Configuração do voo">
     <div class="panel-heading"><span>PAINEL DE VOO</span><span class="subtle">01 / SIMULAÇÃO</span></div>
+    <label for="world-select">MUNDO / MAPA</label>
+    <select id="world-select">
+      <option value="rio">Rio de Janeiro · cenário original</option>
+      <option value="aetheria">Aetheria · megamapa ficcional (20 regiões)</option>
+    </select>
+    <div id="world-info" role="status" aria-live="polite" class="world-info">Rio de Janeiro · 3 aeroportos · relevo opcional</div>
+    <div id="aetheria-controls" hidden>
+      <label for="aetheria-region">REGIÃO DE AETHERIA · IR ATÉ</label>
+      <select id="aetheria-region" aria-label="Região do megamapa">
+      </select>
+      <p class="world-hint">20 regiões interligadas · 60 aeroportos fictícios · superfície contínua · sem downloads externos.</p>
+    </div>
     <label for="game-mode">MODO DE JOGO</label>
     <select id="game-mode">
       <option value="free">Voo Livre · sem pontuação</option>
       <option value="challenge">Desafio Aéreo · túnel de argolas</option>
     </select>
-    <label for="terrain-mode">CENÁRIO 3D</label>
+    <div id="rio-terrain-options">
+    <label for="terrain-mode">CENÁRIO 3D · SOMENTE RIO</label>
     <select id="terrain-mode">
       <option value="real">Relevo real · DEM + satélite</option>
       <option value="art">Terreno artístico · sem downloads</option>
@@ -49,6 +62,7 @@
       placeholder="Chave pública restrita ao domínio">
     <button id="apply-terrain" class="button-secondary" type="button">APLICAR CENÁRIO</button>
     <div id="terrain-status" role="status" aria-live="polite">Inicializando dados geográficos…</div>
+    </div>
     <label for="aircraft">AERONAVE</label>
     <select id="aircraft">
       <option value="cessna">Cessna 172 · aviação geral</option>
@@ -107,7 +121,7 @@
   </aside>
 
   <aside id="map-panel" class="panel map-panel" aria-label="Mapa de navegação">
-    <div class="map-heading"><span>MAPA TÁTICO <em>· RIO DE JANEIRO</em></span><span id="map-bearing">N ↑</span></div>
+    <div class="map-heading"><span>MAPA TÁTICO <em id="map-world-label">· RIO DE JANEIRO</em></span><span id="map-bearing">N ↑</span></div>
     <canvas id="map" width="320" height="320" aria-label="Mapa da região, aeroportos e aeronave"></canvas>
     <div class="map-legend"><span><i class="legend-plane"></i> SUA POSIÇÃO</span><span><i class="legend-airport"></i> AEROPORTO</span></div>
   </aside>
@@ -140,8 +154,13 @@
       <div class="eyebrow"><span class="live-dot"></span> SEU PRÓXIMO VOO COMEÇA AQUI</div>
       <div class="hero-emblem">✦</div>
       <h1 id="welcome-title">O RIO É<br><em>SEU CÉU.</em></h1>
-      <p>Decole sobre a Baía de Guanabara, contorne o Pão de Açúcar e descubra o Rio de Janeiro em um simulador 3D feito para o navegador.</p>
-      <div class="welcome-features"><span>◈ 3 AERONAVES</span><span>◈ 3 AEROPORTOS</span><span>◈ VOO LIVRE + DESAFIO</span></div>
+      <label for="welcome-world" class="world-welcome-label">ESCOLHA SEU MUNDO</label>
+      <select id="welcome-world" class="world-welcome-select">
+        <option value="rio">RIO DE JANEIRO · CENÁRIO ORIGINAL</option>
+        <option value="aetheria">AETHERIA · 20 REGIÕES / 60 AEROPORTOS</option>
+      </select>
+      <p id="welcome-desc">Decole sobre a Baía de Guanabara, contorne o Pão de Açúcar e descubra o Rio de Janeiro em um simulador 3D feito para o navegador.</p>
+      <div id="welcome-features" class="welcome-features"><span>◈ 3 AERONAVES</span><span>◈ 3 AEROPORTOS</span><span>◈ VOO LIVRE + DESAFIO</span></div>
       <button id="start" class="button-primary hero-button" type="button">INICIAR VOO LIVRE &nbsp; ↗</button>
       <button id="welcome-challenge" class="button-primary hero-button challenge-start" type="button">◎ INICIAR DESAFIO DE ARGOLAS &nbsp; ↗</button>
       <button id="start-runway" class="link-button" type="button">OU COMEÇAR NA PISTA DE DECOLAGEM →</button>
