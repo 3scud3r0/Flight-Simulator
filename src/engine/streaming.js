@@ -1,16 +1,18 @@
 /** Algorithms 021–040: bounded streaming, LOD, visibility and GPU lifetime. */
 import {clamp,vec,length,sub,add,mul} from "./math.js";
-export function quadtree(bounds,depth,estimate,threshold=1){
- const visit=(box,d)=>{const node={bounds:box,children:null,error:estimate(box)};
- if(d<=0||node.error<=threshold)return node;
+export function quadtree(bounds,depth,estimate,threshold=1,maxNodes=16384){
+ let nodes=0;
+ const visit=(box,d)=>{nodes++;const node={bounds:box,children:null,error:estimate(box)};
+ if(d<=0||node.error<=threshold||nodes+4>maxNodes)return node;
  const {x,y,size}=box,h=size/2;
  node.children=[[x,y],[x+h,y],[x,y+h],[x+h,y+h]]
  .map(([a,b])=>visit({x:a,y:b,size:h},d-1));return node;};
  return visit(bounds,Math.min(depth,15));
 }
-export function octree(bounds,depth,occupied){
- const visit=(b,d)=>{const count=occupied(b),n={bounds:b,count,children:null};
- if(d<=0||!count)return n;const h=b.size/2;
+export function octree(bounds,depth,occupied,maxNodes=16384){
+ let nodes=0;
+ const visit=(b,d)=>{nodes++;const count=occupied(b),n={bounds:b,count,children:null};
+ if(d<=0||!count||nodes+8>maxNodes)return n;const h=b.size/2;
  n.children=[];for(let z=0;z<2;z++)for(let y=0;y<2;y++)for(let x=0;x<2;x++)
  n.children.push(visit({x:b.x+x*h,y:b.y+y*h,z:b.z+z*h,size:h},d-1));
  return n;};return visit(bounds,Math.min(10,depth));
@@ -89,14 +91,21 @@ export function disposeResources(resources){
  return count;
 }
 export function boundedWorkerPool(jobs,limit,worker){
- const queue=[...jobs],results=new Array(jobs.length),index=new Map(jobs.map((j,i)=>[j,i]));
- let active=0,resolve,reject;
+ const queue=jobs.map((value,index)=>({value,index}));
+ const results=new Array(jobs.length);
+ let active=0,settled=false,resolve,reject;
  const done=new Promise((res,rej)=>{resolve=res;reject=rej});
- const next=()=>{if(!queue.length&&!active){resolve(results);return}
- while(active<Math.max(1,limit)&&queue.length){const job=queue.shift();active++;
- Promise.resolve().then(()=>worker(job)).then(v=>{results[index.get(job)]=v;active--;next()},
- e=>{queue.length=0;reject(e)});}
- };next();return done;
+ const next=()=>{
+  if(settled)return;
+  if(!queue.length&&!active){settled=true;resolve(results);return}
+  while(active<Math.max(1,limit)&&queue.length){
+   const {value,index}=queue.shift();active++;
+   Promise.resolve().then(()=>worker(value,index)).then(result=>{
+    results[index]=result;active--;next();
+   },error=>{if(!settled){settled=true;queue.length=0;reject(error)}});
+  }
+ };
+ next();return done;
 }
 export function originRebase(worldPoints,origin){
  return worldPoints.map(p=>vec(p.x-origin.x,p.y-origin.y,p.z-origin.z));
