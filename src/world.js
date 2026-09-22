@@ -150,7 +150,7 @@ export function createWorld(THREE, scene, renderer) {
     map: grass, vertexColors: true, roughness: 0.97, flatShading: false
   });
   const segments = 300, span = 63000;
-  const vertices = [], colors = [], indices = [];
+  const vertices = [], colors = [], uvs = [], indices = [];
   const color = new THREE.Color();
   for (let row = 0; row <= segments; row++) {
     for (let col = 0; col <= segments; col++) {
@@ -159,6 +159,7 @@ export function createWorld(THREE, scene, renderer) {
       const h = sampleHeight(x, z);
       const land = h > 0;
       vertices.push(x, h, z);
+      uvs.push(col / segments, row / segments);
       if (!land) color.setRGB(0.05, 0.20, 0.25);
       else if (h > 115) color.setRGB(0.32, 0.47, 0.30);
       else if (h > 35) color.setRGB(0.52, 0.65, 0.44);
@@ -177,6 +178,7 @@ export function createWorld(THREE, scene, renderer) {
   const terrainGeo = new THREE.BufferGeometry();
   terrainGeo.setAttribute("position", new THREE.Float32BufferAttribute(vertices, 3));
   terrainGeo.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+  terrainGeo.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
   terrainGeo.setIndex(indices); terrainGeo.computeVertexNormals();
   const terrain = new THREE.Mesh(terrainGeo, groundMat);
   terrain.receiveShadow = true; scene.add(terrain);
@@ -234,6 +236,31 @@ export function createWorld(THREE, scene, renderer) {
       pad(tx, tz, 2, 90, y + .19, lineYellow, rad(airport.heading));
     }
   }
+
+  // Approximate sand along the southern coastline, generated as a textured ribbon.
+  const beachPositions = [], beachUVs = [], beachIndices = [];
+  const beachCount = 240;
+  for (let i = 0; i <= beachCount; i++) {
+    const lon = -43.46 + i / beachCount * .30;
+    const lat = shorelineLatitude(lon);
+    for (const offsetLat of [.00009, .00107]) {
+      const point = geo(lat + offsetLat, lon);
+      beachPositions.push(point.x,
+        Math.max(3.5, sampleHeight(point.x, point.z)) + .34, point.z);
+      beachUVs.push(i / 6, offsetLat / .00107);
+    }
+    if (i < beachCount) {
+      const n = i * 2;
+      beachIndices.push(n, n + 1, n + 2, n + 2, n + 1, n + 3);
+    }
+  }
+  const beachGeo = new THREE.BufferGeometry();
+  beachGeo.setAttribute("position", new THREE.Float32BufferAttribute(beachPositions, 3));
+  beachGeo.setAttribute("uv", new THREE.Float32BufferAttribute(beachUVs, 2));
+  beachGeo.setIndex(beachIndices); beachGeo.computeVertexNormals();
+  const beachMesh = new THREE.Mesh(beachGeo,
+    new THREE.MeshStandardMaterial({ map: sand, side: THREE.DoubleSide, roughness: 1 }));
+  beachMesh.receiveShadow = true; scene.add(beachMesh);
 
   // Instancing keeps large neighbourhoods to a handful of draw calls.
   const districts = [
