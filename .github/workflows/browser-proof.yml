@@ -2,7 +2,7 @@ name: Chromium WebGL proof
 
 on:
   push:
-    branches: [fix/aetheria-startup-and-ui]
+    branches: [feat/cc0-world-assets]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -22,9 +22,12 @@ jobs:
           node-version: '22'
       - name: Install pinned Three.js and browser driver
         run: |
-          npm install --no-save --no-package-lock --ignore-scripts --no-audit --no-fund three@0.180.0 playwright@1.55.0
+          npm install --no-save --no-package-lock --ignore-scripts --no-audit --no-fund three@0.180.0 playwright@1.55.0 esbuild@0.25.9
           mkdir -p vendor
           cp node_modules/three/build/three.module.js vendor/three.module.js
+          cp node_modules/three/build/three.core.js vendor/three.core.js
+          npx esbuild node_modules/three/examples/jsm/loaders/GLTFLoader.js --bundle --format=esm --external:three --outfile=vendor/GLTFLoader.bundle.js
+          node scripts/download-assets.mjs
           cp node_modules/three/build/three.core.js vendor/three.core.js
           npx playwright install ffmpeg
       - uses: browser-actions/setup-chrome@v1

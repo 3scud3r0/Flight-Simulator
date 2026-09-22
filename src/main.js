@@ -272,8 +272,12 @@ function spawn(runway = false) {
     const panoramic = geo(-22.979, -43.227);
     options = { ...panoramic, y: 780, heading: rad(65) };
   } else {
-    options = { x: p.x - 1900, z: p.z + 2200,
-      y: Math.max(850,airport.elevation+650), heading: rad(airport.heading) };
+    options = activeWorld==="aetheria"?
+      {x:p.x-650,z:p.z+650,y:airport.elevation+255,
+       heading:rad(airport.heading)}:
+      {x:p.x-1900,z:p.z+2200,
+       y:Math.max(850,airport.elevation+650),
+       heading:rad(airport.heading)};
   }
   flight = createFlight(activeAircraft, options);
   if (runway) {

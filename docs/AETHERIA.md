@@ -1,6 +1,9 @@
 # Aetheria — Megamapa ficcional
 
-Aetheria é **um segundo mundo**, isolado do Rio de Janeiro. É um mundo inteiramente inventado. Não reaproveita o terreno do Rio nem simula cidades reais. Não utiliza satélites, fotogrametria comercial, dados externos, credenciais ou downloads de mapas.
+> **Novos recursos 3D reais (v0.6 experimental):** os recursos CC0 importados, seu download local, SHA dos GLBs e limites visuais estão documentados em [ASSET_SOURCES.md](ASSET_SOURCES.md). Aetheria completa agora dispõe de modelos glTF reais por aeroporto e materiais PBR de solo/asfalto; a versão leve e o Rio permanecem separados. Não é um projeto AAA concluído.
+
+
+Aetheria é **um segundo mundo**, isolado do Rio de Janeiro. É um mundo inteiramente inventado. Não reaproveita o terreno do Rio nem simula cidades reais. Não utiliza satélites, fotogrametria comercial, credenciais nem downloads de mapas externos **durante o voo**. A compilação da versão completa importa separadamente recursos CC0 de Kenney e Poly Haven para o pacote estático.
 
 ## Versão inicial jogável
 

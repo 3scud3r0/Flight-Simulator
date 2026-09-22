@@ -46,10 +46,12 @@ jobs:
           node-version: '22'
       - name: Instalar Three.js local e driver de navegador
         run: |
-          npm install --no-save --no-package-lock --ignore-scripts --no-audit --no-fund three@0.180.0 playwright@1.55.0
+          npm install --no-save --no-package-lock --ignore-scripts --no-audit --no-fund three@0.180.0 playwright@1.55.0 esbuild@0.25.9
           mkdir -p vendor
           cp node_modules/three/build/three.module.js vendor/three.module.js
           cp node_modules/three/build/three.core.js vendor/three.core.js
+          npx esbuild node_modules/three/examples/jsm/loaders/GLTFLoader.js --bundle --format=esm --external:three --outfile=vendor/GLTFLoader.bundle.js
+          node scripts/download-assets.mjs
           npx playwright install ffmpeg
       - name: Preparar Chromium real
         uses: browser-actions/setup-chrome@v1
@@ -73,6 +75,8 @@ jobs:
           cp -R src site/
           cp vendor/three.module.js site/vendor/
           cp vendor/three.core.js site/vendor/
+          cp vendor/GLTFLoader.bundle.js site/vendor/
+          cp -R assets site/
           cp -R proof site/
       - name: Preparar GitHub Pages
         uses: actions/configure-pages@v5
