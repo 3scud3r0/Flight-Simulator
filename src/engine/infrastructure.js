@@ -47,9 +47,9 @@ export function aerodromeLights(runway,{spacing=80,thresholdCount=10}={}){
  color:"green",kind:"threshold"});
  return lights;
 }
-export function vegetationDistribution(bounds,density,accept,seed=1){
- const random=rng(seed),result=[],count=Math.ceil(
- bounds.width*bounds.height*Math.max(0,density));
+export function vegetationDistribution(bounds,density,accept,seed=1,maxCandidates=30000){
+ const random=rng(seed),result=[],count=Math.min(maxCandidates,Math.ceil(
+ bounds.width*bounds.height*Math.max(0,density)));
  for(let i=0;i<count;i++){const x=bounds.x+random()*bounds.width,
  z=bounds.z+random()*bounds.height;
  if(accept(x,z))result.push({x,z,height:2+random()*15,variant:Math.floor(random()*6)})}
