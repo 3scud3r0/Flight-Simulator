@@ -139,10 +139,15 @@ function label(THREE, text, color = "#e9f5ff") {
 }
 export function createWorld(THREE, scene, renderer) {
   const rand = rng();
-  const grass = proceduralTexture(THREE, "grass");
-  const asphalt = proceduralTexture(THREE, "asphalt");
-  const sand = proceduralTexture(THREE, "sand");
-  const water = proceduralTexture(THREE, "water", 1024);
+  // 2K on desktop; 1K on coarse-pointer mobile hardware to limit GPU memory.
+  const mobile = typeof matchMedia === "function" &&
+    matchMedia("(pointer: coarse)").matches;
+  const textureSize = Math.min(renderer.capabilities.maxTextureSize,
+    mobile ? 1024 : 2048);
+  const grass = proceduralTexture(THREE, "grass", textureSize);
+  const asphalt = proceduralTexture(THREE, "asphalt", textureSize);
+  const sand = proceduralTexture(THREE, "sand", textureSize);
+  const water = proceduralTexture(THREE, "water", Math.min(textureSize, 1024));
   water.repeat.set(34, 34);
   grass.repeat.set(42, 42);
   asphalt.repeat.set(2, 6);
