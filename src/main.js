@@ -11,6 +11,7 @@ import { createRealTerrain } from "./real-terrain.js";
 import { createSky } from "./sky.js";
 import { createRigidFlight, stepRigidFlight } from "./six-dof.js";
 import { makeDetailedAircraft } from "./aircraft-model.js";
+import { createOcean } from "./ocean.js";
 
 const $ = id => document.getElementById(id);
 const loading = $("loading");
@@ -44,6 +45,8 @@ const camera = new THREE.PerspectiveCamera(64, 1, .6, 92000);
 const clock = new THREE.Clock();
 const world = createWorld(THREE, scene, renderer);
 const sky = createSky(THREE, scene, world, renderer);
+world.sea.visible = false;
+const ocean = createOcean(THREE, scene, renderer);
 const nowBrazil = new Intl.DateTimeFormat("en-CA", {
   timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit"
 });
@@ -720,6 +723,7 @@ function animate(now) {
     "T" + hourText + ":00-03:00");
   const environment = sky.update(localDate, $("weather").value, dt, flight);
   environmentWind = environment.wind || environmentWind;
+  ocean.update(dt, environment.sun.vector, $("weather").value);
   terrainEngine?.update(flight.x, flight.z);
   updateCamera(dt);
   if (mapTimer >= .18) {
